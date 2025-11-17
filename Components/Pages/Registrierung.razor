@@ -1,0 +1,261 @@
+@page "/registrierung"
+@rendermode InteractiveServer
+@using TippspielWeb.Services
+@inject TippspielService TippspielService
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center">
+                    <h3>🏆 Registrierung</h3>
+                    <p class="mb-0">Erstellen Sie Ihren Account für das Tippspiel</p>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(erfolgsMeldung))
+                    {
+                        <div class="alert alert-success">
+                            <strong>✓ Erfolgreich!</strong> @erfolgsMeldung
+                        </div>
+                        <button class="btn btn-primary w-100" @onclick="@(() => Navigation.NavigateTo("/login"))">
+                            Zum Login
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-person"></i> Benutzername
+                            </label>
+                            <input type="text" 
+                                   class="form-control @GetValidationClass(benutzernameValid)" 
+                                   @bind="Benutzername" 
+                                   @bind:event="oninput"
+                                   placeholder="Wählen Sie einen eindeutigen Benutzernamen"
+                                   maxlength="30" />
+                            @if (!string.IsNullOrEmpty(benutzername))
+                            {
+                                @if (benutzernameValid == true)
+                                {
+                                    <small class="text-success">
+                                        <i class="bi bi-check-circle"></i> Benutzername verfügbar
+                                    </small>
+                                }
+                                else if (benutzernameValid == false)
+                                {
+                                    <small class="text-danger">
+                                        <i class="bi bi-exclamation-triangle"></i> @benutzernameFehlermeldung
+                                    </small>
+                                }
+                            }
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-lock"></i> Passwort
+                            </label>
+                            <input type="password" 
+                                   class="form-control @GetValidationClass(passwortValid)" 
+                                   @bind="Passwort" 
+                                   @bind:event="oninput"
+                                   placeholder="Mindestens 6 Zeichen" />
+                            @if (!string.IsNullOrEmpty(passwort))
+                            {
+                                <div class="mt-1">
+                                    <small class="@(passwort.Length >= 6 ? "text-success" : "text-muted")">
+                                        <i class="bi bi-@(passwort.Length >= 6 ? "check" : "dash")-circle"></i> 
+                                        Mindestens 6 Zeichen
+                                    </small>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-lock-fill"></i> Passwort wiederholen
+                            </label>
+                            <input type="password" 
+                                   class="form-control @GetValidationClass(passwortWiederholungValid)" 
+                                   @bind="PasswortWiederholung" 
+                                   @bind:event="oninput"
+                                   placeholder="Passwort erneut eingeben" />
+                            @if (!string.IsNullOrEmpty(passwortWiederholung))
+                            {
+                                @if (passwortWiederholungValid == true)
+                                {
+                                    <small class="text-success">
+                                        <i class="bi bi-check-circle"></i> Passwörter stimmen überein
+                                    </small>
+                                }
+                                else if (passwortWiederholungValid == false)
+                                {
+                                    <small class="text-danger">
+                                        <i class="bi bi-exclamation-triangle"></i> Passwörter stimmen nicht überein
+                                    </small>
+                                }
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(fehlerMeldung))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i> @fehlerMeldung
+                            </div>
+                        }
+
+                        <button class="btn btn-success btn-lg w-100 mb-3" 
+                                @onclick="Registrieren"
+                                disabled="@(!IstFormularValid())">
+                            <i class="bi bi-person-plus"></i> Jetzt registrieren
+                        </button>
+
+                        <hr />
+
+                        <div class="text-center">
+                            <p class="mb-2">Bereits registriert?</p>
+                            <button class="btn btn-outline-primary w-100" @onclick="@(() => Navigation.NavigateTo("/login"))">
+                                <i class="bi bi-box-arrow-in-right"></i> Zum Login
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string benutzername = "";
+    private string passwort = "";
+    private string passwortWiederholung = "";
+    private string fehlerMeldung = "";
+    private string erfolgsMeldung = "";
+
+    private bool? benutzernameValid = null;
+    private bool? passwortValid = null;
+    private bool? passwortWiederholungValid = null;
+    private string benutzernameFehlermeldung = "";
+
+    private string Benutzername
+    {
+        get => benutzername;
+        set
+        {
+            benutzername = value;
+            ValidiereBenutzername();
+        }
+    }
+
+    private string Passwort
+    {
+        get => passwort;
+        set
+        {
+            passwort = value;
+            ValidierePasswort();
+        }
+    }
+
+    private string PasswortWiederholung
+    {
+        get => passwortWiederholung;
+        set
+        {
+            passwortWiederholung = value;
+            ValidierePasswortWiederholung();
+        }
+    }
+
+    private void ValidiereBenutzername()
+    {
+        if (string.IsNullOrWhiteSpace(benutzername))
+        {
+            benutzernameValid = null;
+            return;
+        }
+
+        if (benutzername.Length < 3)
+        {
+            benutzernameValid = false;
+            benutzernameFehlermeldung = "Benutzername muss mindestens 3 Zeichen lang sein";
+            return;
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(benutzername, @"^[a-zA-Z0-9äöüÄÖÜß_-]+$"))
+        {
+            benutzernameValid = false;
+            benutzernameFehlermeldung = "Nur Buchstaben, Zahlen, - und _ erlaubt";
+            return;
+        }
+
+        if (TippspielService.BenutzerExistiert(benutzername))
+        {
+            benutzernameValid = false;
+            benutzernameFehlermeldung = "Benutzername bereits vergeben";
+            return;
+        }
+
+        benutzernameValid = true;
+        benutzernameFehlermeldung = "";
+    }
+
+    private void ValidierePasswort()
+    {
+        passwortValid = !string.IsNullOrEmpty(passwort) && passwort.Length >= 6;
+        
+        // Auch Passwort-Wiederholung validieren wenn sie bereits ausgefüllt ist
+        if (!string.IsNullOrEmpty(passwortWiederholung))
+        {
+            passwortWiederholungValid = passwort == passwortWiederholung;
+        }
+    }
+
+    private void ValidierePasswortWiederholung()
+    {
+        if (string.IsNullOrEmpty(passwortWiederholung))
+        {
+            passwortWiederholungValid = null;
+        }
+        else
+        {
+            passwortWiederholungValid = passwort == passwortWiederholung;
+        }
+    }
+
+    private string GetValidationClass(bool? isValid)
+    {
+        if (isValid == null) return "";
+        return isValid.Value ? "is-valid" : "is-invalid";
+    }
+
+    private bool IstFormularValid()
+    {
+        return benutzernameValid == true 
+            && passwortValid == true 
+            && passwortWiederholungValid == true;
+    }
+
+    private void Registrieren()
+    {
+        fehlerMeldung = "";
+
+        if (!IstFormularValid())
+        {
+            fehlerMeldung = "Bitte füllen Sie alle Felder korrekt aus.";
+            return;
+        }
+
+        if (TippspielService.BenutzerRegistrieren(benutzername, passwort))
+        {
+            erfolgsMeldung = $"Ihr Account '{benutzername}' wurde erfolgreich erstellt! Sie können sich jetzt anmelden.";
+            benutzername = "";
+            passwort = "";
+            passwortWiederholung = "";
+        }
+        else
+        {
+            fehlerMeldung = "Registrierung fehlgeschlagen. Benutzername ist bereits vergeben.";
+        }
+    }
+}

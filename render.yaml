@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: tippspielweb
+    runtime: dotnet
+    plan: free
+    buildCommand: dotnet publish -c Release -o out
+    startCommand: cd out && dotnet TippspielWeb.dll --urls "http://0.0.0.0:$PORT"
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production

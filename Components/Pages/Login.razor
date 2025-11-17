@@ -1,0 +1,165 @@
+@page "/login"
+@rendermode InteractiveServer
+@using TippspielWeb.Services
+@inject TippspielService TippspielService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h3>🏆 Willkommen zum Tippspiel</h3>
+                </div>
+                <div class="card-body">
+                    @if (!zeigeAdminLogin)
+                    {
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-person"></i> Benutzername
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   @bind="benutzername" 
+                                   @onkeypress="HandleKeyPress"
+                                   placeholder="Ihr Benutzername"
+                                   autocomplete="username" />
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="bi bi-lock"></i> Passwort
+                            </label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   @bind="passwort" 
+                                   @onkeypress="HandleKeyPress"
+                                   placeholder="Ihr Passwort"
+                                   autocomplete="current-password" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(fehlerMeldung))
+                        {
+                            <div class="alert alert-danger">
+                                <i class="bi bi-exclamation-triangle"></i> @fehlerMeldung
+                            </div>
+                        }
+
+                        <button class="btn btn-success btn-lg w-100 mb-3" 
+                                @onclick="BenutzerLogin"
+                                disabled="@(string.IsNullOrEmpty(benutzername) || string.IsNullOrEmpty(passwort))">
+                            <i class="bi bi-box-arrow-in-right"></i> Anmelden
+                        </button>
+
+                        <hr />
+
+                        <div class="text-center mb-3">
+                            <p class="mb-2">Noch kein Account?</p>
+                            <button class="btn btn-outline-success w-100" @onclick="@(() => Navigation.NavigateTo("/registrierung"))">
+                                <i class="bi bi-person-plus"></i> Jetzt registrieren
+                            </button>
+                        </div>
+
+                        <hr />
+
+                        <button class="btn btn-primary btn-lg w-100" @onclick="ZeigeAdminLogin">
+                            <i class="bi bi-shield-lock-fill"></i> Als Administrator anmelden
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="mt-3">
+                            <label class="form-label fw-bold">Administrator-Passwort:</label>
+                            <input type="password" class="form-control" @bind="adminPasswort" @onkeypress="HandleAdminKeyPress" />
+                            @if (!string.IsNullOrEmpty(fehlerMeldung))
+                            {
+                                <div class="alert alert-danger mt-2">@fehlerMeldung</div>
+                            }
+                            <div class="mt-2">
+                                <button class="btn btn-primary me-2" @onclick="AdminLogin">Login</button>
+                                <button class="btn btn-secondary" @onclick="ZurueckZurAnmeldung">Zurück</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string benutzername = "";
+    private string passwort = "";
+    private bool zeigeAdminLogin = false;
+    private string adminPasswort = "";
+    private string fehlerMeldung = "";
+
+    private void BenutzerLogin()
+    {
+        fehlerMeldung = "";
+
+        if (string.IsNullOrEmpty(benutzername) || string.IsNullOrEmpty(passwort))
+        {
+            fehlerMeldung = "Bitte füllen Sie alle Felder aus.";
+            return;
+        }
+
+        var benutzer = TippspielService.BenutzerLogin(benutzername, passwort);
+        
+        if (benutzer != null)
+        {
+            AuthService.Anmelden(benutzer.Benutzername, benutzer.IstAdmin);
+            Navigation.NavigateTo($"/spieler/{benutzer.Benutzername}");
+        }
+        else
+        {
+            fehlerMeldung = "Benutzername oder Passwort falsch!";
+            passwort = "";
+        }
+    }
+
+    private void ZeigeAdminLogin()
+    {
+        zeigeAdminLogin = true;
+        fehlerMeldung = "";
+        adminPasswort = "";
+    }
+
+    private void ZurueckZurAnmeldung()
+    {
+        zeigeAdminLogin = false;
+        fehlerMeldung = "";
+        adminPasswort = "";
+    }
+
+    private void AdminLogin()
+    {
+        if (TippspielService.AdminLoginPruefen(adminPasswort))
+        {
+            AuthService.Anmelden("Administrator", true);
+            Navigation.NavigateTo("/admin");
+        }
+        else
+        {
+            fehlerMeldung = "Falsches Passwort! Zugriff verweigert.";
+            adminPasswort = "";
+        }
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(benutzername) && !string.IsNullOrEmpty(passwort))
+        {
+            BenutzerLogin();
+        }
+    }
+
+    private void HandleAdminKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(adminPasswort))
+        {
+            AdminLogin();
+        }
+    }
+}

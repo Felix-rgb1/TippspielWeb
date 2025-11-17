@@ -1,0 +1,723 @@
+@page "/spieler/{SpielerName}"
+@rendermode InteractiveServer
+@using TippspielWeb.Services
+@using TippspielWeb.Models
+@inject TippspielService TippspielService
+@inject NavigationManager Navigation
+
+<h3 class="mb-4">
+    Willkommen, @SpielerName! <span class="badge bg-success">Punkte: @aktuellerSpieler?.Punkte</span>
+    <button class="btn btn-sm btn-outline-primary float-end" @onclick="@(() => Navigation.NavigateTo("/profil"))">
+        <i class="bi bi-person-gear"></i> Profil bearbeiten
+    </button>
+</h3>
+
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "tipps" ? "active" : "")" @onclick="@(() => aktiverTab = "tipps")">Tipps abgeben</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "turnier" ? "active" : "")" @onclick="@(() => aktiverTab = "turnier")">Turniertipp</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "meine" ? "active" : "")" @onclick="@(() => aktiverTab = "meine")">Meine Tipps</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "alle" ? "active" : "")" @onclick="@(() => aktiverTab = "alle")">Alle Tipps</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "tabelle" ? "active" : "")" @onclick="@(() => aktiverTab = "tabelle")">Tabelle</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "export" ? "active" : "")" @onclick="@(() => aktiverTab = "export")">Export</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "statistik" ? "active" : "")" @onclick="@(() => aktiverTab = "statistik")">Statistik</button>
+    </li>
+</ul>
+
+<div class="tab-content mt-3">
+    @if (aktiverTab == "statistik")
+    {
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-header bg-primary text-white fw-bold">
+                        <i class="bi bi-graph-up"></i> Meine Tipp-Statistik
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
+                            var beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
+                            var richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
+                            var exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
+                            var differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
+                            var tendenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 1).Count();
+                            var falscheTipps = beendeteSpiele.Count - richtigeTipps;
+                            var gesamtSpiele = spiele.Count;
+                            var tippQuote = beendeteSpiele.Count > 0 ? (richtigeTipps * 100.0 / beendeteSpiele.Count) : 0;
+                        }
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-6">
+                                <h2 class="text-primary mb-0">@meineTipps.Count</h2>
+                                <small class="text-muted">Tipps abgegeben</small>
+                            </div>
+                            <div class="col-6">
+                                <h2 class="text-success mb-0">@aktuellerSpieler?.Punkte</h2>
+                                <small class="text-muted">Gesamtpunkte</small>
+                            </div>
+                        </div>
+                        
+                        <hr />
+                        
+                        <h6 class="mb-3">Auswertung (nur beendete Spiele):</h6>
+                        <div class="mb-2">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span><i class="bi bi-check-circle-fill text-success"></i> Richtige Tipps</span>
+                                <strong>@richtigeTipps von @beendeteSpiele.Count (@tippQuote.ToString("F1")%)</strong>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                @if (beendeteSpiele.Count > 0)
+                                {
+                                    var prozent = (richtigeTipps * 100.0 / beendeteSpiele.Count);
+                                    <div class="progress-bar bg-success" style="width: @prozent%">@richtigeTipps</div>
+                                    <div class="progress-bar bg-danger" style="width: @(100 - prozent)%">@falscheTipps</div>
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><span class="badge bg-success">3 Punkte</span> Exakt richtig</span>
+                                <strong>@exakteTipps</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><span class="badge bg-success">2 Punkte</span> Differenz richtig</span>
+                                <strong>@differenzTipps</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span><span class="badge bg-warning">1 Punkt</span> Tendenz richtig</span>
+                                <strong>@tendenzTipps</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span><span class="badge bg-danger">0 Punkte</span> Falsch</span>
+                                <strong>@falscheTipps</strong>
+                            </div>
+                        </div>
+                        
+                        <hr />
+                        
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Noch offene Spiele:</span>
+                            <strong>@(gesamtSpiele - beendeteSpiele.Count)</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark fw-bold">
+                        <i class="bi bi-trophy-fill"></i> Mein Turniertipp
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(weltmeisterTipp) || !string.IsNullOrEmpty(vizemeisterTipp))
+                        {
+                            <div class="text-center">
+                                <div class="mb-4">
+                                    <i class="bi bi-trophy text-warning" style="font-size: 3rem;"></i>
+                                    <h4 class="mt-2">Weltmeister</h4>
+                                    <h3 class="text-primary">@(string.IsNullOrEmpty(weltmeisterTipp) ? "-" : weltmeisterTipp)</h3>
+                                </div>
+                                
+                                <div>
+                                    <i class="bi bi-award text-secondary" style="font-size: 2.5rem;"></i>
+                                    <h5 class="mt-2">Vizemeister</h5>
+                                    <h4 class="text-secondary">@(string.IsNullOrEmpty(vizemeisterTipp) ? "-" : vizemeisterTipp)</h4>
+                                </div>
+                            </div>
+                            
+                            <hr />
+                            
+                            <div class="text-center">
+                                <button class="btn btn-primary" @onclick="@(() => aktiverTab = "turnier")">
+                                    <i class="bi bi-pencil"></i> Turniertipp ändern
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning text-center">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <p class="mb-2">Du hast noch keinen Turniertipp abgegeben!</p>
+                                <button class="btn btn-warning" @onclick="@(() => aktiverTab = "turnier")">
+                                    <i class="bi bi-trophy"></i> Jetzt Turniertipp abgeben
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (aktiverTab == "tipps")
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Tipps abgeben</h5>
+            <div>
+                <label class="me-2">Filter:</label>
+                <select class="form-select d-inline-block" style="width: auto;" @bind="gewaehlterSpieltag">
+                    <option value="">Alle Spieltage</option>
+                    @foreach (var st in spiele.Select(s => s.Spieltag).Distinct().OrderBy(s => s))
+                    {
+                        <option value="@st">@st</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @foreach (var gruppe in GetGefilterteSpiele().GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
+        {
+            <div class="card mb-3">
+                <div class="card-header bg-primary text-white fw-bold">SPIELTAG @gruppe.Key</div>
+                <div class="card-body">
+                    @foreach (var spiel in gruppe.OrderBy(s => s.SpielDatum))
+                    {
+                        var lokalSpiel = spiel;
+                        <div class="row mb-3 pb-3 border-bottom align-items-center">
+                            <div class="col-md-5">
+                                <div><strong>@lokalSpiel.Heimmannschaft vs @lokalSpiel.Gastmannschaft</strong></div>
+                                <small class="text-muted">@lokalSpiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</small>
+                                @if (lokalSpiel.IstBeendet())
+                                {
+                                    <div><small class="text-success">Ergebnis: @lokalSpiel.HeimTore:@lokalSpiel.GastTore</small></div>
+                                }
+                                else if (lokalSpiel.Tipps.ContainsKey(SpielerName))
+                                {
+                                    <div><small class="text-info">Aktueller Tipp: @lokalSpiel.Tipps[SpielerName].HeimTore:@lokalSpiel.Tipps[SpielerName].GastTore</small></div>
+                                }
+                            </div>
+                            <div class="col-md-7">
+                                @if (lokalSpiel.IstBeendet())
+                                {
+                                    <div class="alert alert-warning mb-0 py-2">Spiel beendet</div>
+                                }
+                                else if (!TippspielService.IstTippMoeglich(lokalSpiel.SpielNummer))
+                                {
+                                    <div class="alert alert-danger mb-0 py-2">
+                                        <i class="bi bi-lock-fill"></i> Tipp-Abgabe gesperrt (weniger als 1 Stunde bis Spielbeginn)
+                                    </div>
+                                }
+                                else
+                                {
+                                    var istGesperrt = !TippspielService.IstTippMoeglich(lokalSpiel.SpielNummer);
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-4">
+                                            <label class="form-label small mb-1">@lokalSpiel.Heimmannschaft</label>
+                                            <input type="number" class="form-control" 
+                                                   value="@GetTippHeim(lokalSpiel)" 
+                                                   @oninput="@(e => SetTippHeim(lokalSpiel, e.Value?.ToString()))"
+                                                   min="0" max="20" 
+                                                   placeholder="0"
+                                                   disabled="@istGesperrt" />
+                                        </div>
+                                        <div class="col-1 text-center">
+                                            <strong style="font-size: 1.5rem;">:</strong>
+                                        </div>
+                                        <div class="col-4">
+                                            <label class="form-label small mb-1">@lokalSpiel.Gastmannschaft</label>
+                                            <input type="number" class="form-control" 
+                                                   value="@GetTippGast(lokalSpiel)" 
+                                                   @oninput="@(e => SetTippGast(lokalSpiel, e.Value?.ToString()))"
+                                                   min="0" max="20" 
+                                                   placeholder="0"
+                                                   disabled="@istGesperrt" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small mb-1">&nbsp;</label>
+                                            <button type="button" 
+                                                    class="btn @(lokalSpiel.Tipps.ContainsKey(SpielerName) ? "btn-warning" : "btn-success") w-100" 
+                                                    @onclick="@(() => TippSpeichern(lokalSpiel))"
+                                                    disabled="@istGesperrt">
+                                                <i class="bi bi-@(lokalSpiel.Tipps.ContainsKey(SpielerName) ? "pencil" : "check")"></i>
+                                                @(lokalSpiel.Tipps.ContainsKey(SpielerName) ? "Tipp bearbeiten" : "Tipp abgeben")
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else if (aktiverTab == "turnier")
+    {
+        <div class="card">
+            <div class="card-header bg-warning text-dark fw-bold">
+                <i class="bi bi-trophy-fill"></i> Turniertipp: Weltmeister & Vizemeister
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Tipp hier auf die beiden Finalisten! Diese Tipps können jederzeit geändert werden.
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-trophy text-warning"></i> Weltmeister
+                        </label>
+                        <input type="text" class="form-control" @bind="weltmeisterTipp" list="mannschaften-liste" placeholder="Mannschaft wählen oder eingeben" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-award text-secondary"></i> Vizemeister
+                        </label>
+                        <input type="text" class="form-control" @bind="vizemeisterTipp" list="mannschaften-liste" placeholder="Mannschaft wählen oder eingeben" />
+                    </div>
+                </div>
+                
+                <button class="btn btn-success" @onclick="TurniertippSpeichern">
+                    <i class="bi bi-save"></i> Turniertipp speichern
+                </button>
+                
+                @if (!string.IsNullOrEmpty(turniertippMeldung))
+                {
+                    <div class="alert alert-success mt-3 mb-0">
+                        <i class="bi bi-check-circle"></i> @turniertippMeldung
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (aktiverTab == "meine")
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Meine Tipps</h5>
+            <div>
+                <label class="me-2">Filter:</label>
+                <select class="form-select d-inline-block" style="width: auto;" @bind="gewaehlterSpieltag">
+                    <option value="">Alle Spieltage</option>
+                    @foreach (var st in spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).Select(s => s.Spieltag).Distinct().OrderBy(s => s))
+                    {
+                        <option value="@st">@st</option>
+                    }
+                </select>
+            </div>
+        </div>
+        @foreach (var gruppe in GetGefilterteSpiele().Where(s => s.Tipps.ContainsKey(SpielerName)).GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
+        {
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white fw-bold">SPIELTAG @gruppe.Key</div>
+                <div class="list-group list-group-flush">
+                    @foreach (var spiel in gruppe.OrderBy(s => s.SpielDatum))
+                    {
+                        var tipp = spiel.Tipps[SpielerName];
+                        var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
+                        
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <strong>@spiel.Heimmannschaft vs @spiel.Gastmannschaft</strong>
+                                <span class="text-muted">@spiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</span>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-primary">Mein Tipp: @tipp.HeimTore:@tipp.GastTore</span>
+                                @if (spiel.IstBeendet())
+                                {
+                                    <span class="badge bg-secondary">Ergebnis: @spiel.HeimTore:@spiel.GastTore</span>
+                                    @if (punkte == 3)
+                                    {
+                                        <span class="badge bg-success">✓✓✓ 3 Punkte - Exakt!</span>
+                                    }
+                                    else if (punkte == 2)
+                                    {
+                                        <span class="badge bg-success">✓✓ 2 Punkte - Differenz</span>
+                                    }
+                                    else if (punkte == 1)
+                                    {
+                                        <span class="badge bg-warning">✓ 1 Punkt - Tendenz</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">✗ 0 Punkte</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Offen</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else if (aktiverTab == "alle")
+    {
+        <div class="mb-3">
+            <h5 class="mb-3">Alle Tipps (gesperrte Spiele)</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="me-2">Spieltag:</label>
+                    <select class="form-select d-inline-block" style="width: auto;" @bind="gewaehlterSpieltag">
+                        <option value="">Alle Spieltage</option>
+                        @foreach (var st in spiele.Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer)).Select(s => s.Spieltag).Distinct().OrderBy(s => s))
+                        {
+                            <option value="@st">@st</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="me-2">Benutzer:</label>
+                    <select class="form-select d-inline-block" style="width: auto;" @bind="gewaehlterBenutzer">
+                        <option value="">Alle Benutzer</option>
+                        @foreach (var spieler in alleSpieler.OrderBy(s => s.Name))
+                        {
+                            <option value="@spieler.Name">@spieler.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        @if (!GetGefilterteSpiele().Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer)).Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Aktuell sind noch keine Spiele gesperrt. Tipps werden sichtbar, sobald ein Spiel in weniger als 1 Stunde beginnt.
+            </div>
+        }
+        else
+        {
+            @foreach (var gruppe in GetGefilterteSpiele().Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer)).GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
+            {
+                <div class="card mb-3">
+                    <div class="card-header bg-dark text-white fw-bold">
+                        <i class="bi bi-lock-fill"></i> SPIELTAG @gruppe.Key
+                    </div>
+                    <div class="card-body">
+                        @foreach (var spiel in gruppe.OrderBy(s => s.SpielDatum))
+                        {
+                            <div class="mb-4 pb-3 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">
+                                        <strong>@spiel.Heimmannschaft vs @spiel.Gastmannschaft</strong>
+                                    </h6>
+                                    <span class="text-muted">@spiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</span>
+                                </div>
+                                
+                                @if (spiel.IstBeendet())
+                                {
+                                    <div class="alert alert-success mb-2 py-2">
+                                        <strong>Endergebnis: @spiel.HeimTore : @spiel.GastTore</strong>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning mb-2 py-2">
+                                        <i class="bi bi-lock-fill"></i> Tipp-Abgabe gesperrt - Spiel läuft oder startet bald
+                                    </div>
+                                }
+                                
+                                @if (spiel.Tipps.Any())
+                                {
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-bordered mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Spieler</th>
+                                                    <th class="text-center">Tipp</th>
+                                                    @if (spiel.IstBeendet())
+                                                    {
+                                                        <th class="text-center">Punkte</th>
+                                                    }
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var tippEntry in spiel.Tipps.Where(t => string.IsNullOrEmpty(gewaehlterBenutzer) || t.Key == gewaehlterBenutzer).OrderBy(t => t.Key))
+                                                {
+                                                    var tipp = tippEntry.Value;
+                                                    var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
+                                                    var istEigenerTipp = tippEntry.Key == SpielerName;
+                                                    
+                                                    <tr class="@(istEigenerTipp ? "table-info" : "")">
+                                                        <td>
+                                                            @tippEntry.Key
+                                                            @if (istEigenerTipp)
+                                                            {
+                                                                <span class="badge bg-primary">Du</span>
+                                                            }
+                                                        </td>
+                                                        <td class="text-center">
+                                                            <strong>@tipp.HeimTore : @tipp.GastTore</strong>
+                                                        </td>
+                                                        @if (spiel.IstBeendet())
+                                                        {
+                                                            <td class="text-center">
+                                                                @if (punkte == 3)
+                                                                {
+                                                                    <span class="badge bg-success">3 Punkte</span>
+                                                                }
+                                                                else if (punkte == 2)
+                                                                {
+                                                                    <span class="badge bg-success">2 Punkte</span>
+                                                                }
+                                                                else if (punkte == 1)
+                                                                {
+                                                                    <span class="badge bg-warning">1 Punkt</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-danger">0 Punkte</span>
+                                                                }
+                                                            </td>
+                                                        }
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted small">Keine Tipps abgegeben</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    }
+    else if (aktiverTab == "tabelle")
+    {
+        <h5>Aktuelle Tabelle</h5>
+        <table class="table table-striped">
+            <thead class="table-warning">
+                <tr>
+                    <th>Platz</th>
+                    <th>Spieler</th>
+                    <th>Punkte</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    var sortiert = alleSpieler.OrderByDescending(s => s.Punkte).ToList();
+                    int platz = 1;
+                    for (int i = 0; i < sortiert.Count; i++)
+                    {
+                        if (i > 0 && sortiert[i].Punkte < sortiert[i - 1].Punkte)
+                            platz = i + 1;
+
+                        var cssClass = "";
+                        if (platz == 1) cssClass = "table-warning";
+                        else if (platz == 2) cssClass = "table-secondary";
+                        else if (platz == 3) cssClass = "table-danger";
+                        else if (sortiert[i].Name == SpielerName) cssClass = "table-info";
+
+                        <tr class="@cssClass">
+                            <td>@platz</td>
+                            <td>@sortiert[i].Name @(sortiert[i].Name == SpielerName ? "👤" : "")</td>
+                            <td>@sortiert[i].Punkte</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+    else if (aktiverTab == "export")
+    {
+        <h5>Excel Export</h5>
+        <div class="card">
+            <div class="card-body">
+                <p>Exportiere deine persönlichen Tipps und die aktuelle Tabelle als Excel-Datei.</p>
+                <p class="text-muted"><small>Hinweis: Bei "Alle Tipps" werden nur die Tipps von abgeschlossenen Spielen angezeigt.</small></p>
+                <button type="button" class="btn btn-success" @onclick="ExcelExportieren">
+                    <i class="bi bi-file-earmark-excel"></i> Excel exportieren
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<datalist id="mannschaften-liste">
+    @foreach (var mannschaft in mannschaftsListe)
+    {
+        <option value="@mannschaft.Name">@mannschaft.Name</option>
+    }
+</datalist>
+
+<div class="mt-3">
+    <button class="btn btn-secondary" @onclick="@(() => Navigation.NavigateTo("/login"))">Zurück zum Login</button>
+</div>
+
+@inject IJSRuntime JS
+
+@code {
+    [Parameter]
+    public string SpielerName { get; set; } = "";
+
+    private List<Spiel> spiele = new();
+    private List<Spieler> alleSpieler = new();
+    private Spieler? aktuellerSpieler;
+    private string aktiverTab = "tipps";
+    private Dictionary<int, (int heim, int gast)> tempTipps = new();
+    private string gewaehlterSpieltag = "";
+    private string gewaehlterBenutzer = "";
+    private string weltmeisterTipp = "";
+    private string vizemeisterTipp = "";
+    private string turniertippMeldung = "";
+    private List<Mannschaft> mannschaftsListe = new();
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrWhiteSpace(SpielerName))
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        
+        spiele = TippspielService.GetAlleSpiele();
+        alleSpieler = TippspielService.GetAlleSpieler();
+        aktuellerSpieler = alleSpieler.FirstOrDefault(s => s.Name == SpielerName);
+        mannschaftsListe = TippspielService.GetAlleMannschaften();
+        
+        // Lade bestehende Turniertipps
+        var (wm, vm) = TippspielService.GetTurniertipp(SpielerName);
+        weltmeisterTipp = wm ?? "";
+        vizemeisterTipp = vm ?? "";
+        
+        if (aktuellerSpieler == null)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        
+        // Initialisiere temporäre Tipps
+        foreach (var spiel in spiele)
+        {
+            if (spiel.Tipps.ContainsKey(SpielerName))
+            {
+                var tipp = spiel.Tipps[SpielerName];
+                tempTipps[spiel.SpielNummer] = (tipp.HeimTore, tipp.GastTore);
+            }
+            else
+            {
+                tempTipps[spiel.SpielNummer] = (0, 0);
+            }
+        }
+    }
+
+    private int GetTippHeim(Spiel spiel)
+    {
+        if (tempTipps.ContainsKey(spiel.SpielNummer))
+            return tempTipps[spiel.SpielNummer].Item1;
+        return 0;
+    }
+
+    private int GetTippGast(Spiel spiel)
+    {
+        if (tempTipps.ContainsKey(spiel.SpielNummer))
+            return tempTipps[spiel.SpielNummer].Item2;
+        return 0;
+    }
+
+    private void SetTippHeim(Spiel spiel, string? value)
+    {
+        if (int.TryParse(value, out int heim))
+        {
+            var current = tempTipps.ContainsKey(spiel.SpielNummer) ? tempTipps[spiel.SpielNummer] : (0, 0);
+            tempTipps[spiel.SpielNummer] = (heim, current.Item2);
+        }
+    }
+
+    private void SetTippGast(Spiel spiel, string? value)
+    {
+        if (int.TryParse(value, out int gast))
+        {
+            var current = tempTipps.ContainsKey(spiel.SpielNummer) ? tempTipps[spiel.SpielNummer] : (0, 0);
+            tempTipps[spiel.SpielNummer] = (current.Item1, gast);
+        }
+    }
+
+    private void TippSpeichern(Spiel spiel)
+    {
+        if (!spiel.IstBeendet() && 
+            TippspielService.IstTippMoeglich(spiel.SpielNummer) && 
+            tempTipps.ContainsKey(spiel.SpielNummer))
+        {
+            var (heim, gast) = tempTipps[spiel.SpielNummer];
+            if (TippspielService.TippAbgeben(spiel.SpielNummer, SpielerName, heim, gast))
+            {
+                spiele = TippspielService.GetAlleSpiele();
+                alleSpieler = TippspielService.GetAlleSpieler();
+                aktuellerSpieler = alleSpieler.FirstOrDefault(s => s.Name == SpielerName);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private int BerechnePunkte(Tipp tipp, Spiel spiel)
+    {
+        if (!spiel.IstBeendet()) return 0;
+
+        int heimTore = spiel.HeimTore ?? 0;
+        int gastTore = spiel.GastTore ?? 0;
+
+        if (tipp.HeimTore == heimTore && tipp.GastTore == gastTore)
+            return 3;
+
+        int tippDiff = tipp.HeimTore - tipp.GastTore;
+        int spielDiff = heimTore - gastTore;
+
+        if (tippDiff == spielDiff)
+            return 2;
+
+        if ((tippDiff > 0 && spielDiff > 0) || 
+            (tippDiff == 0 && spielDiff == 0) || 
+            (tippDiff < 0 && spielDiff < 0))
+            return 1;
+
+        return 0;
+    }
+
+    private async Task ExcelExportieren()
+    {
+        try
+        {
+            var excelDaten = TippspielService.ExportiereNachExcelFuerSpieler(SpielerName);
+            var base64 = Convert.ToBase64String(excelDaten);
+            var dateiname = $"Tippspiel_{SpielerName}_{DateTime.Now:yyyyMMdd}.xlsx";
+            await JS.InvokeVoidAsync("downloadFile", dateiname, base64);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Fehler beim Excel-Export: {ex.Message}");
+        }
+    }
+
+    private void TurniertippSpeichern()
+    {
+        TippspielService.TurniertippSpeichern(SpielerName, 
+            string.IsNullOrWhiteSpace(weltmeisterTipp) ? null : weltmeisterTipp, 
+            string.IsNullOrWhiteSpace(vizemeisterTipp) ? null : vizemeisterTipp);
+        
+        turniertippMeldung = "Turniertipp erfolgreich gespeichert!";
+        StateHasChanged();
+        
+        // Meldung nach 3 Sekunden ausblenden
+        Task.Delay(3000).ContinueWith(_ => 
+        {
+            turniertippMeldung = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private List<Spiel> GetGefilterteSpiele()
+    {
+        if (string.IsNullOrEmpty(gewaehlterSpieltag))
+            return spiele;
+        return spiele.Where(s => s.Spieltag == gewaehlterSpieltag).ToList();
+    }
+}

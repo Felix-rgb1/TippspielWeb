@@ -1,0 +1,121 @@
+{
+  "Benutzer": [
+    {
+      "Benutzername": "Felix",
+      "PasswortHash": "/eSvnGntQXk5PUb0oEWO3inyTrmS+RBRUaLJ/5tpt+k=",
+      "RegistriertAm": "2025-11-17T10:37:23.5874552+01:00",
+      "IstAdmin": false,
+      "WeltmeisterTipp": "Deutschland",
+      "VizemeisterTipp": "Italien"
+    },
+    {
+      "Benutzername": "Hans",
+      "PasswortHash": "jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI=",
+      "RegistriertAm": "2025-11-17T11:23:58.0458342+01:00",
+      "IstAdmin": false,
+      "WeltmeisterTipp": "England",
+      "VizemeisterTipp": "Türkei"
+    }
+  ],
+  "Mannschaften": [
+    {
+      "Name": "Deutschland"
+    },
+    {
+      "Name": "Türkei"
+    },
+    {
+      "Name": "Italien"
+    },
+    {
+      "Name": "Holland"
+    },
+    {
+      "Name": "England"
+    }
+  ],
+  "Spieler": [
+    {
+      "Name": "Felix",
+      "Punkte": 0
+    },
+    {
+      "Name": "Hans",
+      "Punkte": 0
+    }
+  ],
+  "Spiele": [
+    {
+      "SpielNummer": 1,
+      "Spieltag": "1",
+      "Heimmannschaft": "Luxemburg",
+      "Gastmannschaft": "Deutschland",
+      "SpielDatum": "2025-11-14T20:30:00",
+      "HeimTore": null,
+      "GastTore": null,
+      "Tipps": {}
+    },
+    {
+      "SpielNummer": 2,
+      "Spieltag": "1",
+      "Heimmannschaft": "VFB",
+      "Gastmannschaft": "FCB",
+      "SpielDatum": "2025-11-14T14:30:00",
+      "HeimTore": 2,
+      "GastTore": 0,
+      "Tipps": {}
+    },
+    {
+      "SpielNummer": 3,
+      "Spieltag": "2",
+      "Heimmannschaft": "Deutschland",
+      "Gastmannschaft": "England",
+      "SpielDatum": "2025-11-16T16:38:00",
+      "HeimTore": null,
+      "GastTore": null,
+      "Tipps": {}
+    },
+    {
+      "SpielNummer": 4,
+      "Spieltag": "Achtelfinale",
+      "Heimmannschaft": "Deutschland",
+      "Gastmannschaft": "Portugal",
+      "SpielDatum": "2025-11-30T14:39:00",
+      "HeimTore": null,
+      "GastTore": null,
+      "Tipps": {
+        "Felix": {
+          "SpielerName": "Felix",
+          "HeimTore": 2,
+          "GastTore": 0
+        },
+        "Hans": {
+          "SpielerName": "Hans",
+          "HeimTore": 1,
+          "GastTore": 0
+        }
+      }
+    },
+    {
+      "SpielNummer": 5,
+      "Spieltag": "1",
+      "Heimmannschaft": "Deutschland",
+      "Gastmannschaft": "Türkei",
+      "SpielDatum": "2025-11-19T11:04:00",
+      "HeimTore": null,
+      "GastTore": null,
+      "Tipps": {
+        "Felix": {
+          "SpielerName": "Felix",
+          "HeimTore": 4,
+          "GastTore": 0
+        },
+        "Hans": {
+          "SpielerName": "Hans",
+          "HeimTore": 0,
+          "GastTore": 1
+        }
+      }
+    }
+  ]
+}

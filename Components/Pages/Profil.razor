@@ -1,0 +1,334 @@
+@page "/profil"
+@rendermode InteractiveServer
+@using TippspielWeb.Services
+@inject TippspielService TippspielService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            @if (!AuthService.IstAngemeldet)
+            {
+                <div class="alert alert-warning">
+                    Sie müssen angemeldet sein, um auf diese Seite zuzugreifen.
+                </div>
+            }
+            else
+            {
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h3><i class="bi bi-person-circle"></i> Mein Profil</h3>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="mb-3">Aktueller Benutzername: <strong>@AuthService.AktuellerBenutzer</strong></h5>
+                        
+                        @if (!string.IsNullOrEmpty(erfolgsMeldung))
+                        {
+                            <div class="alert alert-success alert-dismissible fade show">
+                                <i class="bi bi-check-circle"></i> @erfolgsMeldung
+                                <button type="button" class="btn-close" @onclick="@(() => erfolgsMeldung = "")"></button>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(fehlerMeldung))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show">
+                                <i class="bi bi-exclamation-triangle"></i> @fehlerMeldung
+                                <button type="button" class="btn-close" @onclick="@(() => fehlerMeldung = "")"></button>
+                            </div>
+                        }
+
+                        <!-- Benutzername ändern -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="bi bi-pencil"></i> Benutzername ändern</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Neuer Benutzername</label>
+                                    <input type="text" 
+                                           class="form-control @GetValidationClass(neuerBenutzernameValid)" 
+                                           @bind="NeuerBenutzername" 
+                                           @bind:event="oninput"
+                                           placeholder="Neuen Benutzernamen eingeben"
+                                           maxlength="30" />
+                                    @if (!string.IsNullOrEmpty(neuerBenutzername))
+                                    {
+                                        @if (neuerBenutzernameValid == true)
+                                        {
+                                            <small class="text-success">
+                                                <i class="bi bi-check-circle"></i> Benutzername verfügbar
+                                            </small>
+                                        }
+                                        else if (neuerBenutzernameValid == false)
+                                        {
+                                            <small class="text-danger">
+                                                <i class="bi bi-exclamation-triangle"></i> @benutzernameFehlermeldung
+                                            </small>
+                                        }
+                                    }
+                                </div>
+                                <button class="btn btn-primary" 
+                                        @onclick="BenutzernameAendern"
+                                        disabled="@(neuerBenutzernameValid != true)">
+                                    <i class="bi bi-save"></i> Benutzername speichern
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Passwort ändern -->
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="bi bi-key"></i> Passwort ändern</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Aktuelles Passwort</label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           @bind="altesPasswort"
+                                           placeholder="Aktuelles Passwort eingeben" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Neues Passwort</label>
+                                    <input type="password" 
+                                           class="form-control @GetValidationClass(neuesPasswortValid)" 
+                                           @bind="NeuesPasswort" 
+                                           @bind:event="oninput"
+                                           placeholder="Mindestens 6 Zeichen" />
+                                    @if (!string.IsNullOrEmpty(neuesPasswort))
+                                    {
+                                        <small class="@(neuesPasswort.Length >= 6 ? "text-success" : "text-muted")">
+                                            <i class="bi bi-@(neuesPasswort.Length >= 6 ? "check" : "dash")-circle"></i> 
+                                            Mindestens 6 Zeichen
+                                        </small>
+                                    }
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Neues Passwort wiederholen</label>
+                                    <input type="password" 
+                                           class="form-control @GetValidationClass(neuesPasswortWiederholungValid)" 
+                                           @bind="NeuesPasswortWiederholung" 
+                                           @bind:event="oninput"
+                                           placeholder="Passwort erneut eingeben" />
+                                    @if (!string.IsNullOrEmpty(neuesPasswortWiederholung))
+                                    {
+                                        @if (neuesPasswortWiederholungValid == true)
+                                        {
+                                            <small class="text-success">
+                                                <i class="bi bi-check-circle"></i> Passwörter stimmen überein
+                                            </small>
+                                        }
+                                        else if (neuesPasswortWiederholungValid == false)
+                                        {
+                                            <small class="text-danger">
+                                                <i class="bi bi-exclamation-triangle"></i> Passwörter stimmen nicht überein
+                                            </small>
+                                        }
+                                    }
+                                </div>
+                                <button class="btn btn-primary" 
+                                        @onclick="PasswortAendern"
+                                        disabled="@(!IstPasswortFormularValid())">
+                                    <i class="bi bi-save"></i> Passwort speichern
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <button class="btn btn-secondary" @onclick="@(() => Navigation.NavigateTo($"/spieler/{AuthService.AktuellerBenutzer}"))">
+                                <i class="bi bi-arrow-left"></i> Zurück
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string neuerBenutzername = "";
+    private string altesPasswort = "";
+    private string neuesPasswort = "";
+    private string neuesPasswortWiederholung = "";
+    private string erfolgsMeldung = "";
+    private string fehlerMeldung = "";
+
+    private bool? neuerBenutzernameValid = null;
+    private bool? neuesPasswortValid = null;
+    private bool? neuesPasswortWiederholungValid = null;
+    private string benutzernameFehlermeldung = "";
+
+    protected override void OnInitialized()
+    {
+        // Prüfe ob Benutzer angemeldet ist
+        if (!AuthService.IstAngemeldet)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private string NeuerBenutzername
+    {
+        get => neuerBenutzername;
+        set
+        {
+            neuerBenutzername = value;
+            ValidiereNeuerBenutzername();
+        }
+    }
+
+    private string NeuesPasswort
+    {
+        get => neuesPasswort;
+        set
+        {
+            neuesPasswort = value;
+            ValidiereNeuesPasswort();
+        }
+    }
+
+    private string NeuesPasswortWiederholung
+    {
+        get => neuesPasswortWiederholung;
+        set
+        {
+            neuesPasswortWiederholung = value;
+            ValidiereNeuesPasswortWiederholung();
+        }
+    }
+
+    private void ValidiereNeuerBenutzername()
+    {
+        if (string.IsNullOrWhiteSpace(neuerBenutzername))
+        {
+            neuerBenutzernameValid = null;
+            return;
+        }
+
+        if (neuerBenutzername.Length < 3)
+        {
+            neuerBenutzernameValid = false;
+            benutzernameFehlermeldung = "Benutzername muss mindestens 3 Zeichen lang sein";
+            return;
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(neuerBenutzername, @"^[a-zA-Z0-9äöüÄÖÜß_-]+$"))
+        {
+            neuerBenutzernameValid = false;
+            benutzernameFehlermeldung = "Nur Buchstaben, Zahlen, - und _ erlaubt";
+            return;
+        }
+
+        // Prüfe ob der Name schon existiert (außer es ist der eigene Name)
+        if (!neuerBenutzername.Equals(AuthService.AktuellerBenutzer, StringComparison.OrdinalIgnoreCase) &&
+            TippspielService.BenutzerExistiert(neuerBenutzername))
+        {
+            neuerBenutzernameValid = false;
+            benutzernameFehlermeldung = "Benutzername bereits vergeben";
+            return;
+        }
+
+        neuerBenutzernameValid = true;
+        benutzernameFehlermeldung = "";
+    }
+
+    private void ValidiereNeuesPasswort()
+    {
+        neuesPasswortValid = !string.IsNullOrEmpty(neuesPasswort) && neuesPasswort.Length >= 6;
+        
+        if (!string.IsNullOrEmpty(neuesPasswortWiederholung))
+        {
+            neuesPasswortWiederholungValid = neuesPasswort == neuesPasswortWiederholung;
+        }
+    }
+
+    private void ValidiereNeuesPasswortWiederholung()
+    {
+        if (string.IsNullOrEmpty(neuesPasswortWiederholung))
+        {
+            neuesPasswortWiederholungValid = null;
+        }
+        else
+        {
+            neuesPasswortWiederholungValid = neuesPasswort == neuesPasswortWiederholung;
+        }
+    }
+
+    private string GetValidationClass(bool? isValid)
+    {
+        if (isValid == null) return "";
+        return isValid.Value ? "is-valid" : "is-invalid";
+    }
+
+    private bool IstPasswortFormularValid()
+    {
+        return !string.IsNullOrEmpty(altesPasswort) 
+            && neuesPasswortValid == true 
+            && neuesPasswortWiederholungValid == true;
+    }
+
+    private void BenutzernameAendern()
+    {
+        erfolgsMeldung = "";
+        fehlerMeldung = "";
+
+        if (neuerBenutzernameValid != true)
+        {
+            fehlerMeldung = "Bitte geben Sie einen gültigen Benutzernamen ein.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(AuthService.AktuellerBenutzer))
+        {
+            fehlerMeldung = "Sie sind nicht angemeldet.";
+            return;
+        }
+
+        if (TippspielService.BenutzernameAendern(AuthService.AktuellerBenutzer, neuerBenutzername))
+        {
+            erfolgsMeldung = $"Ihr Benutzername wurde erfolgreich in '{neuerBenutzername}' geändert!";
+            AuthService.Anmelden(neuerBenutzername, AuthService.IstAdmin);
+            neuerBenutzername = "";
+            neuerBenutzernameValid = null;
+        }
+        else
+        {
+            fehlerMeldung = "Fehler beim Ändern des Benutzernamens.";
+        }
+    }
+
+    private void PasswortAendern()
+    {
+        erfolgsMeldung = "";
+        fehlerMeldung = "";
+
+        if (!IstPasswortFormularValid())
+        {
+            fehlerMeldung = "Bitte füllen Sie alle Felder korrekt aus.";
+            return;
+        }
+
+        if (string.IsNullOrEmpty(AuthService.AktuellerBenutzer))
+        {
+            fehlerMeldung = "Sie sind nicht angemeldet.";
+            return;
+        }
+
+        if (TippspielService.PasswortAendern(AuthService.AktuellerBenutzer, altesPasswort, neuesPasswort))
+        {
+            erfolgsMeldung = "Ihr Passwort wurde erfolgreich geändert!";
+            altesPasswort = "";
+            neuesPasswort = "";
+            neuesPasswortWiederholung = "";
+            neuesPasswortValid = null;
+            neuesPasswortWiederholungValid = null;
+        }
+        else
+        {
+            fehlerMeldung = "Fehler beim Ändern des Passworts. Bitte überprüfen Sie Ihr aktuelles Passwort.";
+            altesPasswort = "";
+        }
+    }
+}
