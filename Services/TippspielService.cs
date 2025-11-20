@@ -13,6 +13,7 @@ public class TippspielService
     private List<Mannschaft> mannschaftsListe = new();
     private List<Spieler> spielerListe = new();
     private List<Spiel> spieleListe = new();
+    private List<PrahlAktion> prahlAktionen = new();
     private readonly object _lock = new();
 
     public TippspielService()
@@ -721,6 +722,7 @@ public class TippspielService
                     mannschaftsListe = daten.Mannschaften ?? new List<Mannschaft>();
                     spielerListe = daten.Spieler ?? new List<Spieler>();
                     spieleListe = daten.Spiele ?? new List<Spiel>();
+                    prahlAktionen = daten.PrahlAktionen ?? new List<PrahlAktion>();
                 }
             }
         }
@@ -739,7 +741,8 @@ public class TippspielService
                 Benutzer = benutzerListe,
                 Mannschaften = mannschaftsListe,
                 Spieler = spielerListe,
-                Spiele = spieleListe
+                Spiele = spieleListe,
+                PrahlAktionen = prahlAktionen
             };
 
             var optionen = new JsonSerializerOptions
@@ -965,10 +968,102 @@ public class TippspielService
     }
     
     // Prahlen-Feature
+    public bool KannPrahlen(string spielerName, out string grund)
+    {
+        lock (_lock)
+        {
+            var spieler = spielerListe.FirstOrDefault(s => s.Name == spielerName);
+            if (spieler == null)
+            {
+                grund = "Spieler nicht gefunden";
+                return false;
+            }
+
+            var sortiert = spielerListe.OrderByDescending(s => s.Punkte).ToList();
+            var platz = sortiert.FindIndex(s => s.Name == spielerName) + 1;
+
+            if (platz > 3)
+            {
+                grund = "Du musst in den Top 3 sein um zu prahlen!";
+                return false;
+            }
+
+            // Ermittle aktuellen Spieltag (höchster Spieltag mit beendetem Spiel)
+            var aktuellerSpieltag = spieleListe
+                .Where(s => s.IstBeendet())
+                .OrderByDescending(s => int.TryParse(s.Spieltag, out int st) ? st : 0)
+                .Select(s => s.Spieltag)
+                .FirstOrDefault();
+
+            if (string.IsNullOrEmpty(aktuellerSpieltag))
+            {
+                grund = "Es wurden noch keine Spiele beendet";
+                return false;
+            }
+
+            // Prüfe ob bereits in diesem Spieltag geprahlt wurde
+            var hatBereitsGeprahlt = prahlAktionen.Any(p => 
+                p.SpielerName == spielerName && 
+                p.Spieltag == aktuellerSpieltag);
+
+            if (hatBereitsGeprahlt)
+            {
+                grund = $"Du hast bereits im Spieltag {aktuellerSpieltag} geprahlt!";
+                return false;
+            }
+
+            grund = string.Empty;
+            return true;
+        }
+    }
+
     public void PrahlAktionSpeichern(string spielerName, string nachricht)
     {
-        // Optional: Hier könntest du Prahl-Aktionen in einer Liste speichern
-        // Für jetzt loggen wir es einfach
-        Console.WriteLine($"[PRAHLEN] {nachricht}");
+        lock (_lock)
+        {
+            var spieler = spielerListe.FirstOrDefault(s => s.Name == spielerName);
+            if (spieler == null) return;
+
+            var sortiert = spielerListe.OrderByDescending(s => s.Punkte).ToList();
+            var platz = sortiert.FindIndex(s => s.Name == spielerName) + 1;
+
+            var aktuellerSpieltag = spieleListe
+                .Where(s => s.IstBeendet())
+                .OrderByDescending(s => int.TryParse(s.Spieltag, out int st) ? st : 0)
+                .Select(s => s.Spieltag)
+                .FirstOrDefault() ?? "0";
+
+            var prahlAktion = new PrahlAktion(
+                spielerName, 
+                nachricht, 
+                aktuellerSpieltag, 
+                platz, 
+                spieler.Punkte
+            );
+
+            prahlAktionen.Add(prahlAktion);
+            
+            // Behalte nur die letzten 50 Prahl-Aktionen
+            if (prahlAktionen.Count > 50)
+            {
+                prahlAktionen = prahlAktionen
+                    .OrderByDescending(p => p.Zeitstempel)
+                    .Take(50)
+                    .ToList();
+            }
+
+            SpeichereDaten();
+        }
+    }
+
+    public List<PrahlAktion> GetPrahlAktionen(int anzahl = 10)
+    {
+        lock (_lock)
+        {
+            return prahlAktionen
+                .OrderByDescending(p => p.Zeitstempel)
+                .Take(anzahl)
+                .ToList();
+        }
     }
 }

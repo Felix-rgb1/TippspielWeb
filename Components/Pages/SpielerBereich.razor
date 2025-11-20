@@ -29,6 +29,9 @@
         <button class="nav-link @(aktiverTab == "tabelle" ? "active" : "")" @onclick="@(() => aktiverTab = "tabelle")">Tabelle</button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link @(aktiverTab == "prahlen" ? "active" : "")" @onclick="@(() => aktiverTab = "prahlen")">🎉 Prahl-Feed</button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link @(aktiverTab == "export" ? "active" : "")" @onclick="@(() => aktiverTab = "export")">Export</button>
     </li>
     <li class="nav-item" role="presentation">
@@ -497,13 +500,21 @@
             @{
                 var sortiert = alleSpieler.OrderByDescending(s => s.Punkte).ToList();
                 var meinPlatz = sortiert.FindIndex(s => s.Name == SpielerName) + 1;
-                var kannPrahlen = meinPlatz == 1 || (meinPlatz <= 3 && aktuellerSpieler?.Punkte > 0);
             }
-            @if (kannPrahlen)
+            @if (meinPlatz <= 3 && aktuellerSpieler?.Punkte > 0)
             {
-                <button class="btn btn-warning" @onclick="Prahlen" disabled="@hatGeprahlt">
-                    <i class="bi bi-trophy-fill"></i> @(hatGeprahlt ? "Du hast geprahlt!" : "Prahlen! 🎉")
-                </button>
+                @if (TippspielService.KannPrahlen(SpielerName, out string grund))
+                {
+                    <button class="btn btn-warning" @onclick="Prahlen" disabled="@hatGeprahlt">
+                        <i class="bi bi-trophy-fill"></i> @(hatGeprahlt ? "Du hast geprahlt!" : "Prahlen! 🎉")
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-secondary" disabled title="@grund">
+                        <i class="bi bi-trophy-fill"></i> Bereits geprahlt
+                    </button>
+                }
             }
         </div>
         
@@ -546,6 +557,67 @@
                 }
             </tbody>
         </table>
+    }
+    else if (aktiverTab == "prahlen")
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">🎉 Prahl-Feed</h5>
+            <small class="text-muted">Die letzten Prahlereien der Top 3</small>
+        </div>
+        
+        @{
+            var prahlListe = TippspielService.GetPrahlAktionen(20);
+        }
+        
+        @if (!prahlListe.Any())
+        {
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> Noch keine Prahlereien! Sei der Erste in den Top 3 und prahle! 🏆
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var prahl in prahlListe)
+                {
+                    var zeitDiff = DateTime.Now - prahl.Zeitstempel;
+                    string zeitText;
+                    if (zeitDiff.TotalMinutes < 1)
+                        zeitText = "Gerade eben";
+                    else if (zeitDiff.TotalMinutes < 60)
+                        zeitText = $"vor {(int)zeitDiff.TotalMinutes} Min";
+                    else if (zeitDiff.TotalHours < 24)
+                        zeitText = $"vor {(int)zeitDiff.TotalHours} Std";
+                    else
+                        zeitText = $"vor {(int)zeitDiff.TotalDays} Tag(en)";
+
+                    var cardClass = prahl.Platz == 1 ? "border-warning" : prahl.Platz == 2 ? "border-secondary" : "border-danger";
+                    var badgeClass = prahl.Platz == 1 ? "bg-warning text-dark" : prahl.Platz == 2 ? "bg-secondary" : "bg-danger";
+                    var icon = prahl.Platz == 1 ? "🥇" : prahl.Platz == 2 ? "🥈" : "🥉";
+
+                    <div class="col-12 mb-3">
+                        <div class="card @cardClass">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            @icon <strong>@prahl.SpielerName</strong>
+                                            <span class="badge @badgeClass ms-2">Platz @prahl.Platz</span>
+                                        </h6>
+                                        <p class="mb-2">@prahl.Nachricht</p>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i> @zeitText · 
+                                            Spieltag @prahl.Spieltag · 
+                                            @prahl.Punkte Punkte
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     }
     else if (aktiverTab == "export")
     {

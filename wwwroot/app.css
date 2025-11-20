@@ -91,3 +91,19 @@ h1:focus {
     animation: confetti 1s ease-out 0.2s;
     right: 10%;
 }
+
+/* Prahl-Feed Cards */
+.card.border-warning {
+    border-width: 2px !important;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.card.border-secondary {
+    border-width: 2px !important;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.card.border-danger {
+    border-width: 2px !important;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}

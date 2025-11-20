@@ -135,4 +135,28 @@ public class TippspielDaten
     public List<Mannschaft> Mannschaften { get; set; } = new();
     public List<Spieler> Spieler { get; set; } = new();
     public List<Spiel> Spiele { get; set; } = new();
+    public List<PrahlAktion> PrahlAktionen { get; set; } = new();
+}
+
+// Klasse für Prahl-Aktionen
+public class PrahlAktion
+{
+    public string SpielerName { get; set; } = string.Empty;
+    public string Nachricht { get; set; } = string.Empty;
+    public DateTime Zeitstempel { get; set; } = DateTime.Now;
+    public string Spieltag { get; set; } = string.Empty;
+    public int Platz { get; set; }
+    public int Punkte { get; set; }
+
+    public PrahlAktion() { }
+
+    public PrahlAktion(string spielerName, string nachricht, string spieltag, int platz, int punkte)
+    {
+        SpielerName = spielerName;
+        Nachricht = nachricht;
+        Zeitstempel = DateTime.Now;
+        Spieltag = spieltag;
+        Platz = platz;
+        Punkte = punkte;
+    }
 }
