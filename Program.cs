@@ -3,8 +3,9 @@ using TippspielWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Server für Netzwerkzugriff konfigurieren
-builder.WebHost.UseUrls("http://0.0.0.0:5000");
+// Port-Konfiguration für Render.com (nutzt $PORT Umgebungsvariable)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
