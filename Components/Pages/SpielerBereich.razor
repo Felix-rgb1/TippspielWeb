@@ -580,22 +580,24 @@
             <div class="row">
                 @foreach (var prahl in prahlListe)
                 {
-                    var zeitDiff = DateTime.Now - prahl.Zeitstempel;
-                    string zeitText;
-                    if (zeitDiff.TotalMinutes < 1)
-                        zeitText = "Gerade eben";
-                    else if (zeitDiff.TotalMinutes < 60)
-                        zeitText = $"vor {(int)zeitDiff.TotalMinutes} Min";
-                    else if (zeitDiff.TotalHours < 24)
-                        zeitText = $"vor {(int)zeitDiff.TotalHours} Std";
-                    else
-                        zeitText = $"vor {(int)zeitDiff.TotalDays} Tag(en)";
-
-                    var cardClass = prahl.Platz == 1 ? "border-warning" : prahl.Platz == 2 ? "border-secondary" : "border-danger";
-                    var badgeClass = prahl.Platz == 1 ? "bg-warning text-dark" : prahl.Platz == 2 ? "bg-secondary" : "bg-danger";
-                    var icon = prahl.Platz == 1 ? "🥇" : prahl.Platz == 2 ? "🥈" : "🥉";
-
                     <div class="col-12 mb-3">
+                        @{
+                            var zeitDiff = DateTime.Now - prahl.Zeitstempel;
+                            string zeitText;
+                            if (zeitDiff.TotalMinutes < 1)
+                                zeitText = "Gerade eben";
+                            else if (zeitDiff.TotalMinutes < 60)
+                                zeitText = $"vor {(int)zeitDiff.TotalMinutes} Min";
+                            else if (zeitDiff.TotalHours < 24)
+                                zeitText = $"vor {(int)zeitDiff.TotalHours} Std";
+                            else
+                                zeitText = $"vor {(int)zeitDiff.TotalDays} Tag(en)";
+
+                            var cardClass = prahl.Platz == 1 ? "border-warning" : prahl.Platz == 2 ? "border-secondary" : "border-danger";
+                            var badgeClass = prahl.Platz == 1 ? "bg-warning text-dark" : prahl.Platz == 2 ? "bg-secondary" : "bg-danger";
+                            var icon = prahl.Platz == 1 ? "🥇" : prahl.Platz == 2 ? "🥈" : "🥉";
+                        }
+                        
                         <div class="card @cardClass">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
