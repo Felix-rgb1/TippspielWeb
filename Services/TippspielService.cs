@@ -18,6 +18,8 @@ public class TippspielService
     public TippspielService()
     {
         LadeDaten();
+        // Berechne Punkte beim Start neu, falls bereits Ergebnisse vorhanden sind
+        PunkteBerechnen();
     }
 
     // Mannschafts-Verwaltung
@@ -191,7 +193,7 @@ public class TippspielService
             if (spiel == null) return false;
 
             spiel.SetzeErgebnis(heimTore, gastTore);
-            SpeichereDaten();
+            PunkteBerechnen();
             return true;
         }
     }
