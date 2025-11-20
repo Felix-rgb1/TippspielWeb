@@ -15,11 +15,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Expose port (Render uses PORT env variable)
-EXPOSE $PORT
-
-# Set environment variables (Render provides PORT)
-ENV ASPNETCORE_URLS=http://+:$PORT
-
 # Run the app
+# Render provides PORT as environment variable, Program.cs reads it
 ENTRYPOINT ["dotnet", "TippspielWeb.dll"]
