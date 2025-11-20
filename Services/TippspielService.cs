@@ -963,4 +963,12 @@ public class TippspielService
             return stream.ToArray();
         }
     }
+    
+    // Prahlen-Feature
+    public void PrahlAktionSpeichern(string spielerName, string nachricht)
+    {
+        // Optional: Hier könntest du Prahl-Aktionen in einer Liste speichern
+        // Für jetzt loggen wir es einfach
+        Console.WriteLine($"[PRAHLEN] {nachricht}");
+    }
 }

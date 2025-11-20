@@ -492,7 +492,29 @@
     }
     else if (aktiverTab == "tabelle")
     {
-        <h5>Aktuelle Tabelle</h5>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Aktuelle Tabelle</h5>
+            @{
+                var sortiert = alleSpieler.OrderByDescending(s => s.Punkte).ToList();
+                var meinPlatz = sortiert.FindIndex(s => s.Name == SpielerName) + 1;
+                var kannPrahlen = meinPlatz == 1 || (meinPlatz <= 3 && aktuellerSpieler?.Punkte > 0);
+            }
+            @if (kannPrahlen)
+            {
+                <button class="btn btn-warning" @onclick="Prahlen" disabled="@hatGeprahlt">
+                    <i class="bi bi-trophy-fill"></i> @(hatGeprahlt ? "Du hast geprahlt!" : "Prahlen! 🎉")
+                </button>
+            }
+        </div>
+        
+        @if (!string.IsNullOrEmpty(prahlMeldung))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <strong>💪 @prahlMeldung</strong>
+                <button type="button" class="btn-close" @onclick="@(() => prahlMeldung = "")"></button>
+            </div>
+        }
+        
         <table class="table table-striped">
             <thead class="table-warning">
                 <tr>
@@ -503,7 +525,6 @@
             </thead>
             <tbody>
                 @{
-                    var sortiert = alleSpieler.OrderByDescending(s => s.Punkte).ToList();
                     int platz = 1;
                     for (int i = 0; i < sortiert.Count; i++)
                     {
@@ -516,7 +537,7 @@
                         else if (platz == 3) cssClass = "table-danger";
                         else if (sortiert[i].Name == SpielerName) cssClass = "table-info";
 
-                        <tr class="@cssClass">
+                        <tr class="@cssClass @(sortiert[i].Name == SpielerName && hatGeprahlt ? "prahlen-animation" : "")">
                             <td>@platz</td>
                             <td>@sortiert[i].Name @(sortiert[i].Name == SpielerName ? "👤" : "")</td>
                             <td>@sortiert[i].Punkte</td>
@@ -569,6 +590,8 @@
     private string vizemeisterTipp = "";
     private string turniertippMeldung = "";
     private List<Mannschaft> mannschaftsListe = new();
+    private bool hatGeprahlt = false;
+    private string prahlMeldung = "";
 
     protected override void OnInitialized()
     {
@@ -719,5 +742,38 @@
         if (string.IsNullOrEmpty(gewaehlterSpieltag))
             return spiele;
         return spiele.Where(s => s.Spieltag == gewaehlterSpieltag).ToList();
+    }
+    
+    private void Prahlen()
+    {
+        var sortiert = alleSpieler.OrderByDescending(s => s.Punkte).ToList();
+        var meinPlatz = sortiert.FindIndex(s => s.Name == SpielerName) + 1;
+        
+        string[] prahlSprueche = new string[]
+        {
+            $"{SpielerName} ist einfach unschlagbar! 🏆",
+            $"Niemand kann {SpielerName} stoppen! 💪",
+            $"{SpielerName} zeigt allen wie es geht! 🎯",
+            $"Platz {meinPlatz}? {SpielerName} macht das im Schlaf! 😎",
+            $"{SpielerName} ist der wahre Champion! 👑",
+            $"Alle anderen können einpacken - {SpielerName} dominiert! ⚡",
+            $"{SpielerName} tippt wie ein Profi! 🌟"
+        };
+        
+        var random = new Random();
+        prahlMeldung = prahlSprueche[random.Next(prahlSprueche.Length)];
+        hatGeprahlt = true;
+        
+        // Speichere Prahl-Aktion
+        TippspielService.PrahlAktionSpeichern(SpielerName, prahlMeldung);
+        
+        StateHasChanged();
+        
+        // Reset nach 5 Sekunden
+        Task.Delay(5000).ContinueWith(_ => 
+        {
+            hatGeprahlt = false;
+            InvokeAsync(StateHasChanged);
+        });
     }
 }

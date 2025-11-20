@@ -58,3 +58,36 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Prahlen-Animation */
+@keyframes prahlen {
+    0% { transform: scale(1); }
+    25% { transform: scale(1.05); background-color: #ffd700; }
+    50% { transform: scale(1.1); background-color: #ffed4e; }
+    75% { transform: scale(1.05); background-color: #ffd700; }
+    100% { transform: scale(1); }
+}
+
+@keyframes confetti {
+    0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(-100px) rotate(360deg); }
+}
+
+.prahlen-animation {
+    animation: prahlen 0.6s ease-in-out;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+.prahlen-animation::before {
+    content: '🎉';
+    position: absolute;
+    animation: confetti 1s ease-out;
+    left: 10%;
+}
+
+.prahlen-animation::after {
+    content: '⭐';
+    position: absolute;
+    animation: confetti 1s ease-out 0.2s;
+    right: 10%;
+}
