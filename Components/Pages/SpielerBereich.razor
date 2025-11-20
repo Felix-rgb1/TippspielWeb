@@ -580,42 +580,47 @@
             <div class="row">
                 @foreach (var prahl in prahlListe)
                 {
-                    <div class="col-12 mb-3">
-                        @{
-                            var zeitDiff = DateTime.Now - prahl.Zeitstempel;
-                            string zeitText;
-                            if (zeitDiff.TotalMinutes < 1)
-                                zeitText = "Gerade eben";
-                            else if (zeitDiff.TotalMinutes < 60)
-                                zeitText = $"vor {(int)zeitDiff.TotalMinutes} Min";
-                            else if (zeitDiff.TotalHours < 24)
-                                zeitText = $"vor {(int)zeitDiff.TotalHours} Std";
-                            else
-                                zeitText = $"vor {(int)zeitDiff.TotalDays} Tag(en)";
+                    @{
+                        var zeitDiff = DateTime.Now - prahl.Zeitstempel;
+                        string zeitText;
+                        if (zeitDiff.TotalMinutes < 1)
+                            zeitText = "Gerade eben";
+                        else if (zeitDiff.TotalMinutes < 60)
+                            zeitText = $"vor {(int)zeitDiff.TotalMinutes} Min";
+                        else if (zeitDiff.TotalHours < 24)
+                            zeitText = $"vor {(int)zeitDiff.TotalHours} Std";
+                        else
+                            zeitText = $"vor {(int)zeitDiff.TotalDays} Tag(en)";
 
-                            var cardClass = prahl.Platz == 1 ? "border-warning" : prahl.Platz == 2 ? "border-secondary" : "border-danger";
-                            var badgeClass = prahl.Platz == 1 ? "bg-warning text-dark" : prahl.Platz == 2 ? "bg-secondary" : "bg-danger";
-                            string icon;
-                            if (prahl.Platz == 1)
-                                icon = "🥇";
-                            else if (prahl.Platz == 2)
-                                icon = "🥈";
-                            else
-                                icon = "🥉";
-                        }
-                        
+                        var cardClass = prahl.Platz == 1 ? "border-warning" : prahl.Platz == 2 ? "border-secondary" : "border-danger";
+                        var badgeClass = prahl.Platz == 1 ? "bg-warning text-dark" : prahl.Platz == 2 ? "bg-secondary" : "bg-danger";
+                    }
+                    
+                    <div class="col-12 mb-3">
                         <div class="card @cardClass">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h6 class="mb-1">
-                                            @icon <strong>@prahl.SpielerName</strong>
+                                            @if (prahl.Platz == 1)
+                                            {
+                                                <text>&#x1F947;</text>
+                                            }
+                                            else if (prahl.Platz == 2)
+                                            {
+                                                <text>&#x1F948;</text>
+                                            }
+                                            else
+                                            {
+                                                <text>&#x1F949;</text>
+                                            }
+                                            <strong>@prahl.SpielerName</strong>
                                             <span class="badge @badgeClass ms-2">Platz @prahl.Platz</span>
                                         </h6>
                                         <p class="mb-2">@prahl.Nachricht</p>
                                         <small class="text-muted">
-                                            <i class="bi bi-clock"></i> @zeitText · 
-                                            Spieltag @prahl.Spieltag · 
+                                            <i class="bi bi-clock"></i> @zeitText &#183;
+                                            Spieltag @prahl.Spieltag &#183;
                                             @prahl.Punkte Punkte
                                         </small>
                                     </div>
