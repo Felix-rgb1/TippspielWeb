@@ -561,7 +561,7 @@
     else if (aktiverTab == "prahlen")
     {
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">🎉 Prahl-Feed</h5>
+            <h5 class="mb-0">Prahl-Feed</h5>
             <small class="text-muted">Die letzten Prahlereien der Top 3</small>
         </div>
         
@@ -572,7 +572,7 @@
         @if (!prahlListe.Any())
         {
             <div class="alert alert-info">
-                <i class="bi bi-info-circle"></i> Noch keine Prahlereien! Sei der Erste in den Top 3 und prahle! 🏆
+                <i class="bi bi-info-circle"></i> Noch keine Prahlereien! Sei der Erste in den Top 3 und prahle!
             </div>
         }
         else
@@ -595,7 +595,13 @@
 
                             var cardClass = prahl.Platz == 1 ? "border-warning" : prahl.Platz == 2 ? "border-secondary" : "border-danger";
                             var badgeClass = prahl.Platz == 1 ? "bg-warning text-dark" : prahl.Platz == 2 ? "bg-secondary" : "bg-danger";
-                            var icon = prahl.Platz == 1 ? "🥇" : prahl.Platz == 2 ? "🥈" : "🥉";
+                            string icon;
+                            if (prahl.Platz == 1)
+                                icon = "🥇";
+                            else if (prahl.Platz == 2)
+                                icon = "🥈";
+                            else
+                                icon = "🥉";
                         }
                         
                         <div class="card @cardClass">
