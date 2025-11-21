@@ -36,7 +36,9 @@ public class LiveUpdateService : IHostedService, IDisposable
         {
             using var scope = _serviceProvider.CreateScope();
             var tippspielService = scope.ServiceProvider.GetRequiredService<TippspielService>();
-            var openLigaService = scope.ServiceProvider.GetRequiredService<OpenLigaDBService>();
+            var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+            var httpClient = httpClientFactory.CreateClient();
+            var openLigaService = new OpenLigaDBService(httpClient);
 
             var alleSpiele = tippspielService.GetAlleSpiele();
             var heuteSpiele = alleSpiele.Where(s => 

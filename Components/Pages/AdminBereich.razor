@@ -1094,18 +1094,16 @@
 
     // Live-Ergebnisse aktualisieren
     private bool liveUpdateLaeuft = false;
-    private string liveUpdateMeldung = "";
 
     private async Task LiveErgebnisseAktualisieren()
     {
         liveUpdateLaeuft = true;
-        liveUpdateMeldung = "";
         importMeldung = ""; // Clear import message
         StateHasChanged();
 
         try
         {
-            var alleSpiele = spiele;
+            var alleSpiele = TippspielService.GetAlleSpiele();
             var heuteSpiele = alleSpiele.Where(s => 
                 s.SpielDatum.Date == DateTime.Today && 
                 !s.IstBeendet()

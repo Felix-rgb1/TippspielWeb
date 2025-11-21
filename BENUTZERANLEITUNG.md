@@ -88,30 +88,12 @@ Nach jedem Spiel bekommst du Punkte für deinen Tipp:
 
 ---
 
-## 🎉 Prahlen-Feature
-
-Bist du in den **Top 3**? Dann kannst du prahlen!
-
-1. Gehe zum Tab **"Tabelle"**
-2. Klicke auf den **"Prahlen! 🎉"** Button
-3. 💪 Dein Prahl-Spruch wird angezeigt
-4. ⚠️ Du kannst nur **1x pro Spieltag** prahlen
-
-**Prahl-Sprüche:**
-- "Felix ist einfach unschlagbar! 🏆"
-- "Niemand kann Felix stoppen! 💪"
-- "Felix zeigt allen wie es geht! 🎯"
-- ... und mehr!
-
----
-
 ## 🎨 Tipps & Tricks
 
 ### ✨ Erfolgreiche Strategien:
 1. **Tippe früh!** Vergiss nicht die 1-Stunden-Regel
 2. **Schau dir alle Spiele an** - manchmal sind Überraschungen dabei
-3. **Vergleiche mit anderen** - was tippen die Experten?
-4. **Turniertipp nicht vergessen!** Kann wichtige Bonuspunkte geben
+3. **Turniertipp nicht vergessen!** Kann wichtige Bonuspunkte geben
 
 ### 📱 Bedienung:
 - Die Seite funktioniert auf **Handy, Tablet und PC**
@@ -161,15 +143,7 @@ Ja, jederzeit! Gehe zum Tab **"Turniertipp"**.
 ### **Was passiert bei Gleichstand?**
 Beide Spieler teilen sich den Platz und werden gleich sortiert.
 
----
 
-## 📞 Support
-
-Bei Fragen oder Problemen:
-- Kontaktiere den Administrator
-- Oder melde dich beim Tippspiel-Organisator
-
----
 
 ## 🎮 Viel Erfolg!
 
