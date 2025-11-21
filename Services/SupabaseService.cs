@@ -12,11 +12,17 @@ public class SupabaseService
     public SupabaseService(IConfiguration configuration)
     {
         // Prüfe zuerst Environment Variable, dann appsettings.json
-        _connectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING")
-            ?? configuration.GetConnectionString("Supabase")
+        var envConnectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING");
+        var configConnectionString = configuration.GetConnectionString("Supabase");
+        
+        _connectionString = !string.IsNullOrWhiteSpace(envConnectionString) 
+            ? envConnectionString 
+            : configConnectionString 
             ?? throw new InvalidOperationException("Supabase connection string not found in environment or appsettings");
         
         Console.WriteLine($"SupabaseService initialisiert. Connection String vorhanden: {!string.IsNullOrEmpty(_connectionString)}");
+        Console.WriteLine($"Connection String Quelle: {(!string.IsNullOrWhiteSpace(envConnectionString) ? "Environment Variable" : "appsettings.json")}");
+        Console.WriteLine($"Connection String Länge: {_connectionString.Length} Zeichen");
         
         // Teste die Verbindung beim Start
         try
@@ -29,6 +35,7 @@ public class SupabaseService
         catch (Exception ex)
         {
             Console.WriteLine($"✗ FEHLER bei Datenbankverbindung: {ex.Message}");
+            Console.WriteLine($"Connection String (erste 20 Zeichen): {_connectionString.Substring(0, Math.Min(20, _connectionString.Length))}...");
             throw;
         }
     }
