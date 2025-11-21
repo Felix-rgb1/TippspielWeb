@@ -1025,33 +1025,30 @@
                 TippspielService.MannschaftHinzufuegen(match.Team2.TeamName);
 
                 // Spiel hinzufügen
-                bool erfolg = TippspielService.SpielHinzufuegen(
+                TippspielService.SpielHinzufuegen(
                     match.Group.GroupName,
                     match.Team1.TeamName,
                     match.Team2.TeamName,
                     match.MatchDateTime
                 );
 
-                if (erfolg)
+                importiert++;
+                
+                // Falls Spiel beendet ist, Ergebnis eintragen
+                if (match.MatchIsFinished)
                 {
-                    importiert++;
-                    
-                    // Falls Spiel beendet ist, Ergebnis eintragen
-                    if (match.MatchIsFinished)
+                    var (heim, gast) = match.GetErgebnis();
+                    if (heim.HasValue && gast.HasValue)
                     {
-                        var (heim, gast) = match.GetErgebnis();
-                        if (heim.HasValue && gast.HasValue)
+                        var spielNummer = TippspielService.GetAlleSpiele()
+                            .Where(s => s.Heimmannschaft == match.Team1.TeamName && 
+                                       s.Gastmannschaft == match.Team2.TeamName &&
+                                       s.SpielDatum.Date == match.MatchDateTime.Date)
+                            .FirstOrDefault()?.SpielNummer;
+                        
+                        if (spielNummer.HasValue)
                         {
-                            var spielNummer = TippspielService.GetAlleSpiele()
-                                .Where(s => s.Heimmannschaft == match.Team1.TeamName && 
-                                           s.Gastmannschaft == match.Team2.TeamName &&
-                                           s.SpielDatum.Date == match.MatchDateTime.Date)
-                                .FirstOrDefault()?.SpielNummer;
-                            
-                            if (spielNummer.HasValue)
-                            {
-                                TippspielService.ErgebnisEintragen(spielNummer.Value, heim.Value, gast.Value);
-                            }
+                            TippspielService.ErgebnisEintragen(spielNummer.Value, heim.Value, gast.Value);
                         }
                     }
                 }
