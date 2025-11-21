@@ -76,7 +76,9 @@ public class SupabaseService
             var port = parsedUri.Port;
             var database = parsedUri.AbsolutePath.TrimStart('/');
             
-            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+            // SSL Mode=Require für Supabase, Trust Server Certificate wegen Self-Signed Cert
+            // Timeout erhöht, Pooling aktiviert, IPv4 forcieren
+            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Timeout=30;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100";
         }
         catch (Exception ex)
         {
