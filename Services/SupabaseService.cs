@@ -17,37 +17,22 @@ public class SupabaseService
         var envConnectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING");
         var configConnectionString = configuration.GetConnectionString("Supabase");
         
-        Console.WriteLine($"Environment Variable SUPABASE_CONNECTION_STRING:");
-        Console.WriteLine($"  - Ist null: {envConnectionString == null}");
-        Console.WriteLine($"  - Ist leer: {envConnectionString == string.Empty}");
-        Console.WriteLine($"  - Ist WhiteSpace: {string.IsNullOrWhiteSpace(envConnectionString)}");
-        if (envConnectionString != null)
-        {
-            Console.WriteLine($"  - Länge: {envConnectionString.Length}");
-            Console.WriteLine($"  - Erste 40 Zeichen: '{envConnectionString.Substring(0, Math.Min(40, envConnectionString.Length))}'");
-        }
-        
-        Console.WriteLine($"Config ConnectionString:");
-        Console.WriteLine($"  - Ist null: {configConnectionString == null}");
-        Console.WriteLine($"  - Ist leer: {configConnectionString == string.Empty}");
-        Console.WriteLine($"  - Ist WhiteSpace: {string.IsNullOrWhiteSpace(configConnectionString)}");
-        if (configConnectionString != null)
-        {
-            Console.WriteLine($"  - Länge: {configConnectionString.Length}");
-            Console.WriteLine($"  - Erste 40 Zeichen: '{configConnectionString.Substring(0, Math.Min(40, configConnectionString.Length))}'");
-        }
-        
-        _connectionString = !string.IsNullOrWhiteSpace(envConnectionString) 
+        var rawConnectionString = !string.IsNullOrWhiteSpace(envConnectionString) 
             ? envConnectionString 
             : configConnectionString 
             ?? throw new InvalidOperationException("Supabase connection string not found in environment or appsettings");
         
-        Console.WriteLine($"Gewählte Connection String:");
-        Console.WriteLine($"  - Quelle: {(!string.IsNullOrWhiteSpace(envConnectionString) ? "Environment Variable" : "appsettings.json")}");
-        Console.WriteLine($"  - Länge: {_connectionString.Length} Zeichen");
-        Console.WriteLine($"  - Komplett: '{_connectionString}'");
+        Console.WriteLine($"Connection String Quelle: {(!string.IsNullOrWhiteSpace(envConnectionString) ? "Environment Variable" : "appsettings.json")}");
+        Console.WriteLine($"Raw Connection String: '{rawConnectionString}'");
         
-        // Teste die Verbindung beim Start (aber werfe keinen Fehler wenn es fehlschlägt)
+        // Konvertiere PostgreSQL URI zu Npgsql Connection String Format
+        // Von: postgresql://user:pass@host:port/database
+        // Zu: Host=host;Port=port;Database=database;Username=user;Password=pass
+        _connectionString = ConvertPostgresUriToConnectionString(rawConnectionString);
+        
+        Console.WriteLine($"Konvertierte Connection String: '{_connectionString}'");
+        
+        // Teste die Verbindung beim Start
         try
         {
             Console.WriteLine("Teste Datenbankverbindung...");
@@ -66,11 +51,39 @@ public class SupabaseService
                 Console.WriteLine($"  - Inner Exception: {ex.InnerException.GetType().Name}");
                 Console.WriteLine($"  - Inner Message: {ex.InnerException.Message}");
             }
-            Console.WriteLine($"  - StackTrace: {ex.StackTrace}");
             Console.WriteLine("Die Anwendung startet trotzdem, aber Datenbankoperationen werden fehlschlagen.");
         }
         
         Console.WriteLine("=== SUPABASE SERVICE CONSTRUCTOR END ===");
+    }
+    
+    private static string ConvertPostgresUriToConnectionString(string uri)
+    {
+        // Wenn es bereits im richtigen Format ist (enthält "Host="), gib es direkt zurück
+        if (uri.Contains("Host="))
+        {
+            return uri;
+        }
+        
+        // Parse PostgreSQL URI: postgresql://user:password@host:port/database
+        try
+        {
+            var parsedUri = new Uri(uri);
+            var userInfo = parsedUri.UserInfo.Split(':');
+            var username = userInfo[0];
+            var password = userInfo.Length > 1 ? userInfo[1] : "";
+            var host = parsedUri.Host;
+            var port = parsedUri.Port;
+            var database = parsedUri.AbsolutePath.TrimStart('/');
+            
+            return $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"FEHLER beim Konvertieren der URI: {ex.Message}");
+            // Fallback: versuche es trotzdem
+            return uri;
+        }
     }
 
     private NpgsqlConnection GetConnection()
