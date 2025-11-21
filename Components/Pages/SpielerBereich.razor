@@ -4,6 +4,7 @@
 @using TippspielWeb.Models
 @inject TippspielService TippspielService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <h3 class="mb-4">
     Willkommen, @SpielerName! <span class="badge bg-success">Punkte: @aktuellerSpieler?.Punkte</span>
@@ -615,8 +616,6 @@
 <div class="mt-3">
     <button class="btn btn-secondary" @onclick="@(() => Navigation.NavigateTo("/login"))">Zurück zum Login</button>
 </div>
-
-@inject IJSRuntime JS
 
 @code {
     [Parameter]
