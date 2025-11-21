@@ -11,22 +11,46 @@ public class SupabaseService
 
     public SupabaseService(IConfiguration configuration)
     {
+        Console.WriteLine("=== SUPABASE SERVICE CONSTRUCTOR START ===");
+        
         // Prüfe zuerst Environment Variable, dann appsettings.json
         var envConnectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING");
         var configConnectionString = configuration.GetConnectionString("Supabase");
+        
+        Console.WriteLine($"Environment Variable SUPABASE_CONNECTION_STRING:");
+        Console.WriteLine($"  - Ist null: {envConnectionString == null}");
+        Console.WriteLine($"  - Ist leer: {envConnectionString == string.Empty}");
+        Console.WriteLine($"  - Ist WhiteSpace: {string.IsNullOrWhiteSpace(envConnectionString)}");
+        if (envConnectionString != null)
+        {
+            Console.WriteLine($"  - Länge: {envConnectionString.Length}");
+            Console.WriteLine($"  - Erste 40 Zeichen: '{envConnectionString.Substring(0, Math.Min(40, envConnectionString.Length))}'");
+        }
+        
+        Console.WriteLine($"Config ConnectionString:");
+        Console.WriteLine($"  - Ist null: {configConnectionString == null}");
+        Console.WriteLine($"  - Ist leer: {configConnectionString == string.Empty}");
+        Console.WriteLine($"  - Ist WhiteSpace: {string.IsNullOrWhiteSpace(configConnectionString)}");
+        if (configConnectionString != null)
+        {
+            Console.WriteLine($"  - Länge: {configConnectionString.Length}");
+            Console.WriteLine($"  - Erste 40 Zeichen: '{configConnectionString.Substring(0, Math.Min(40, configConnectionString.Length))}'");
+        }
         
         _connectionString = !string.IsNullOrWhiteSpace(envConnectionString) 
             ? envConnectionString 
             : configConnectionString 
             ?? throw new InvalidOperationException("Supabase connection string not found in environment or appsettings");
         
-        Console.WriteLine($"SupabaseService initialisiert. Connection String vorhanden: {!string.IsNullOrEmpty(_connectionString)}");
-        Console.WriteLine($"Connection String Quelle: {(!string.IsNullOrWhiteSpace(envConnectionString) ? "Environment Variable" : "appsettings.json")}");
-        Console.WriteLine($"Connection String Länge: {_connectionString.Length} Zeichen");
+        Console.WriteLine($"Gewählte Connection String:");
+        Console.WriteLine($"  - Quelle: {(!string.IsNullOrWhiteSpace(envConnectionString) ? "Environment Variable" : "appsettings.json")}");
+        Console.WriteLine($"  - Länge: {_connectionString.Length} Zeichen");
+        Console.WriteLine($"  - Komplett: '{_connectionString}'");
         
-        // Teste die Verbindung beim Start
+        // Teste die Verbindung beim Start (aber werfe keinen Fehler wenn es fehlschlägt)
         try
         {
+            Console.WriteLine("Teste Datenbankverbindung...");
             using var conn = GetConnection();
             conn.Open();
             Console.WriteLine("✓ Datenbankverbindung erfolgreich getestet!");
@@ -34,10 +58,19 @@ public class SupabaseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"✗ FEHLER bei Datenbankverbindung: {ex.Message}");
-            Console.WriteLine($"Connection String (erste 20 Zeichen): {_connectionString.Substring(0, Math.Min(20, _connectionString.Length))}...");
-            throw;
+            Console.WriteLine($"✗ WARNUNG: Datenbankverbindung fehlgeschlagen!");
+            Console.WriteLine($"  - Exception Type: {ex.GetType().Name}");
+            Console.WriteLine($"  - Message: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"  - Inner Exception: {ex.InnerException.GetType().Name}");
+                Console.WriteLine($"  - Inner Message: {ex.InnerException.Message}");
+            }
+            Console.WriteLine($"  - StackTrace: {ex.StackTrace}");
+            Console.WriteLine("Die Anwendung startet trotzdem, aber Datenbankoperationen werden fehlschlagen.");
         }
+        
+        Console.WriteLine("=== SUPABASE SERVICE CONSTRUCTOR END ===");
     }
 
     private NpgsqlConnection GetConnection()
