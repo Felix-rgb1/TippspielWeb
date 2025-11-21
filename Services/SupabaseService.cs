@@ -256,19 +256,25 @@ public class SupabaseService
                 using var conn = GetConnection();
                 conn.Open();
                 
+                // Verwende COALESCE um sicherzustellen, dass spiel_nummer gesetzt wird
                 using var cmd = new NpgsqlCommand(
-                    "INSERT INTO spiele (spiel_nummer, spieltag, heimmannschaft, gastmannschaft, spiel_datum) VALUES (@nr, @st, @heim, @gast, @datum) ON CONFLICT (spiel_nummer) DO UPDATE SET spieltag = @st, heimmannschaft = @heim, gastmannschaft = @gast, spiel_datum = @datum", conn);
+                    @"INSERT INTO spiele (spiel_nummer, spieltag, heimmannschaft, gastmannschaft, spiel_datum) 
+                      VALUES (COALESCE(@nr, (SELECT COALESCE(MAX(spiel_nummer), 0) + 1 FROM spiele)), @st, @heim, @gast, @datum) 
+                      ON CONFLICT (spiel_nummer) DO UPDATE SET spieltag = @st, heimmannschaft = @heim, gastmannschaft = @gast, spiel_datum = @datum 
+                      RETURNING spiel_nummer", conn);
                 cmd.Parameters.AddWithValue("nr", spielNummer);
                 cmd.Parameters.AddWithValue("st", spieltag);
                 cmd.Parameters.AddWithValue("heim", heimmannschaft);
                 cmd.Parameters.AddWithValue("gast", gastmannschaft);
                 cmd.Parameters.AddWithValue("datum", spielDatum);
-                int affected = cmd.ExecuteNonQuery();
-                Console.WriteLine($"SpielHinzufuegen: Spiel #{spielNummer} {heimmannschaft} vs {gastmannschaft} - {affected} Zeilen betroffen");
+                
+                var insertedId = cmd.ExecuteScalar();
+                Console.WriteLine($"SpielHinzufuegen: Spiel #{insertedId} {heimmannschaft} vs {gastmannschaft} in DB gespeichert");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Fehler beim Hinzufügen des Spiels: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
             }
         }
     }
