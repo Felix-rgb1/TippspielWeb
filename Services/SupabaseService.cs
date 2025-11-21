@@ -31,15 +31,17 @@ public class SupabaseService
                 conn.Open();
                 
                 using var cmd = new NpgsqlCommand(
-                    "INSERT INTO benutzer (benutzername, passwort_hash, ist_admin) VALUES (@user, @hash, @admin)", conn);
+                    "INSERT INTO benutzer (benutzername, passwort_hash, ist_admin) VALUES (@user, @hash, @admin) ON CONFLICT (benutzername) DO UPDATE SET passwort_hash = @hash", conn);
                 cmd.Parameters.AddWithValue("user", benutzername);
                 cmd.Parameters.AddWithValue("hash", passwortHash);
                 cmd.Parameters.AddWithValue("admin", istAdmin);
                 cmd.ExecuteNonQuery();
                 
-                // Auch als Spieler registrieren
+                Console.WriteLine($"Benutzer {benutzername} erfolgreich registriert");
+                
+                // Auch als Spieler registrieren (falls noch nicht vorhanden)
                 using var cmd2 = new NpgsqlCommand(
-                    "INSERT INTO spieler (name, punkte) VALUES (@name, 0)", conn);
+                    "INSERT INTO spieler (name, punkte) VALUES (@name, 0) ON CONFLICT (name) DO NOTHING", conn);
                 cmd2.Parameters.AddWithValue("name", benutzername);
                 cmd2.ExecuteNonQuery();
                 
