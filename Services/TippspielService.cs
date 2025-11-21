@@ -308,7 +308,9 @@ public class TippspielService
         lock (_lock)
         {
             var alleBenutzer = _supabaseService.GetAlleBenutzer();
-            return alleBenutzer.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
+            // Nur echte Benutzer (mit Passwort) zählen, nicht Spieler-Platzhalter
+            return alleBenutzer.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase) 
+                && !string.IsNullOrEmpty(b.PasswortHash));
         }
     }
 

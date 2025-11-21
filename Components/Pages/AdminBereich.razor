@@ -1078,7 +1078,6 @@
 
             importMeldung = $"Erfolgreich {importiert} von {spiele.Count} Spielen importiert!";
             importErfolgreich = true;
-            Aktualisieren();
         }
         catch (Exception ex)
         {
@@ -1088,6 +1087,7 @@
         finally
         {
             importLaeuft = false;
+            Aktualisieren();
             StateHasChanged();
         }
     }
