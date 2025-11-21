@@ -759,7 +759,8 @@
 
     protected override void OnInitialized()
     {
-        Aktualisieren();
+        // Initiales vollständiges Laden aller Daten
+        Aktualisieren(vollstaendig: true);
     }
 
     private List<Spiel> GetGefilterte()
@@ -769,27 +770,62 @@
         return spieleListe.Where(s => s.Spieltag == adminSpieltag).ToList();
     }
 
-    private void Aktualisieren()
+    private void Aktualisieren(bool vollstaendig = true)
     {
-        benutzerListe = TippspielService.GetAlleBenutzer();
-        spielerListe = TippspielService.GetAlleSpieler();
-        spieleListe = TippspielService.GetAlleSpiele();
-        mannschaftsListe = TippspielService.GetAlleMannschaften();
-        
-        // Initialisiere Eingabefelder für alle Spiele
-        foreach (var spiel in spieleListe)
+        // Bei vollständigem Update: Lade alle Basisdaten
+        if (vollstaendig)
         {
-            if (spiel.IstBeendet())
+            benutzerListe = TippspielService.GetAlleBenutzer();
+            spielerListe = TippspielService.GetAlleSpieler();
+            mannschaftsListe = TippspielService.GetAlleMannschaften();
+            spieleListe = TippspielService.GetAlleSpiele();
+            
+            // Initialisiere Eingabefelder für alle Spiele
+            foreach (var spiel in spieleListe)
             {
-                ergebnisseHeim[spiel.SpielNummer] = spiel.HeimTore ?? 0;
-                ergebnisseGast[spiel.SpielNummer] = spiel.GastTore ?? 0;
+                if (spiel.IstBeendet())
+                {
+                    ergebnisseHeim[spiel.SpielNummer] = spiel.HeimTore ?? 0;
+                    ergebnisseGast[spiel.SpielNummer] = spiel.GastTore ?? 0;
+                }
+                else
+                {
+                    ergebnisseHeim.TryAdd(spiel.SpielNummer, 0);
+                    ergebnisseGast.TryAdd(spiel.SpielNummer, 0);
+                }
             }
-            else
+            return;
+        }
+        
+        // Bei selektivem Update: Lade nur die Daten für den aktuellen Tab
+        if (tab == "benutzer")
+            benutzerListe = TippspielService.GetAlleBenutzer();
+            
+        if (tab == "tabelle" || tab == "export")
+            spielerListe = TippspielService.GetAlleSpieler();
+            
+        if (tab == "spiele" || tab == "bundesliga" || tab == "tipps" || tab == "export")
+        {
+            spieleListe = TippspielService.GetAlleSpiele();
+            
+            // Initialisiere Eingabefelder für alle Spiele
+            foreach (var spiel in spieleListe)
             {
-                ergebnisseHeim.TryAdd(spiel.SpielNummer, 0);
-                ergebnisseGast.TryAdd(spiel.SpielNummer, 0);
+                if (spiel.IstBeendet())
+                {
+                    ergebnisseHeim[spiel.SpielNummer] = spiel.HeimTore ?? 0;
+                    ergebnisseGast[spiel.SpielNummer] = spiel.GastTore ?? 0;
+                }
+                else
+                {
+                    ergebnisseHeim.TryAdd(spiel.SpielNummer, 0);
+                    ergebnisseGast.TryAdd(spiel.SpielNummer, 0);
+                }
             }
         }
+        
+        if (tab == "mannschaften" || tab == "spiele")
+            mannschaftsListe = TippspielService.GetAlleMannschaften();
     }
 
     private void SpielHinzufuegen()

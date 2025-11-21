@@ -39,6 +39,36 @@
 <div class="tab-content mt-3">
     @if (aktiverTab == "statistik")
     {
+        @{
+            // Berechne Statistiken nur einmal und cache sie
+            var statistikKey = $"{SpielerName}_statistik";
+            if (!_statistikCache.ContainsKey(statistikKey) || _statistikCache[statistikKey] == null)
+            {
+                var meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
+                var beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
+                var richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
+                var exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
+                var differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
+                var tendenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 1).Count();
+                var falscheTipps = beendeteSpiele.Count - richtigeTipps;
+                var tippQuote = beendeteSpiele.Count > 0 ? (richtigeTipps * 100.0 / beendeteSpiele.Count) : 0;
+                
+                _statistikCache[statistikKey] = new
+                {
+                    MeineTipps = meineTipps,
+                    BeendeteSpiele = beendeteSpiele,
+                    RichtigeTipps = richtigeTipps,
+                    ExakteTipps = exakteTipps,
+                    DifferenzTipps = differenzTipps,
+                    TendenzTipps = tendenzTipps,
+                    FalscheTipps = falscheTipps,
+                    TippQuote = tippQuote
+                };
+            }
+            
+            dynamic stats = _statistikCache[statistikKey];
+        }
+        
         <div class="row">
             <div class="col-md-6 mb-3">
                 <div class="card">
@@ -46,21 +76,9 @@
                         <i class="bi bi-graph-up"></i> Meine Tipp-Statistik
                     </div>
                     <div class="card-body">
-                        @{
-                            var meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
-                            var beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
-                            var richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
-                            var exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
-                            var differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
-                            var tendenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 1).Count();
-                            var falscheTipps = beendeteSpiele.Count - richtigeTipps;
-                            var gesamtSpiele = spiele.Count;
-                            var tippQuote = beendeteSpiele.Count > 0 ? (richtigeTipps * 100.0 / beendeteSpiele.Count) : 0;
-                        }
-                        
                         <div class="row text-center mb-3">
                             <div class="col-6">
-                                <h2 class="text-primary mb-0">@meineTipps.Count</h2>
+                                <h2 class="text-primary mb-0">@stats.MeineTipps.Count</h2>
                                 <small class="text-muted">Tipps abgegeben</small>
                             </div>
                             <div class="col-6">
@@ -75,14 +93,14 @@
                         <div class="mb-2">
                             <div class="d-flex justify-content-between mb-1">
                                 <span><i class="bi bi-check-circle-fill text-success"></i> Richtige Tipps</span>
-                                <strong>@richtigeTipps von @beendeteSpiele.Count (@tippQuote.ToString("F1")%)</strong>
+                                <strong>@stats.RichtigeTipps von @stats.BeendeteSpiele.Count (@stats.TippQuote.ToString("F1")%)</strong>
                             </div>
                             <div class="progress" style="height: 25px;">
-                                @if (beendeteSpiele.Count > 0)
+                                @if (stats.BeendeteSpiele.Count > 0)
                                 {
-                                    var prozent = (richtigeTipps * 100.0 / beendeteSpiele.Count);
-                                    <div class="progress-bar bg-success" style="width: @prozent%">@richtigeTipps</div>
-                                    <div class="progress-bar bg-danger" style="width: @(100 - prozent)%">@falscheTipps</div>
+                                    var prozent = (stats.RichtigeTipps * 100.0 / stats.BeendeteSpiele.Count);
+                                    <div class="progress-bar bg-success" style="width: @prozent%">@stats.RichtigeTipps</div>
+                                    <div class="progress-bar bg-danger" style="width: @(100 - prozent)%">@stats.FalscheTipps</div>
                                 }
                             </div>
                         </div>
@@ -90,15 +108,15 @@
                         <div class="mt-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span><span class="badge bg-success">3 Punkte</span> Exakt richtig</span>
-                                <strong>@exakteTipps</strong>
+                                <strong>@stats.ExakteTipps</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span><span class="badge bg-success">2 Punkte</span> Differenz richtig</span>
-                                <strong>@differenzTipps</strong>
+                                <strong>@stats.DifferenzTipps</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span><span class="badge bg-warning">1 Punkt</span> Tendenz richtig</span>
-                                <strong>@tendenzTipps</strong>
+                                <strong>@stats.TendenzTipps</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span><span class="badge bg-danger">0 Punkte</span> Falsch</span>
@@ -610,6 +628,11 @@
     private List<Mannschaft> mannschaftsListe = new();
     private bool hatGeprahlt = false;
     private string prahlMeldung = "";
+    
+    // Performance-Optimierungen: Caching
+    private Dictionary<string, List<Spiel>> _spieltagCache = new();
+    private Dictionary<string, object> _statistikCache = new();
+    private bool _isDatenGeladen = false;
 
     protected override void OnInitialized()
     {
@@ -619,10 +642,19 @@
             return;
         }
         
+        LadeDaten();
+    }
+    
+    private void LadeDaten()
+    {
+        if (_isDatenGeladen) return;
+        
         spiele = TippspielService.GetAlleSpiele();
         alleSpieler = TippspielService.GetAlleSpieler();
         aktuellerSpieler = alleSpieler.FirstOrDefault(s => s.Name == SpielerName);
         mannschaftsListe = TippspielService.GetAlleMannschaften();
+        
+        _isDatenGeladen = true;
         
         // Lade bestehende Turniertipps
         var (wm, vm) = TippspielService.GetTurniertipp(SpielerName);
@@ -691,9 +723,14 @@
             var (heim, gast) = tempTipps[spiel.SpielNummer];
             if (TippspielService.TippAbgeben(spiel.SpielNummer, SpielerName, heim, gast))
             {
+                // Aktualisiere nur die betroffenen Daten
                 spiele = TippspielService.GetAlleSpiele();
                 alleSpieler = TippspielService.GetAlleSpieler();
                 aktuellerSpieler = alleSpieler.FirstOrDefault(s => s.Name == SpielerName);
+                
+                // Lösche Cache nach Tipp-Abgabe
+                CacheLöschen();
+                
                 StateHasChanged();
             }
         }
@@ -759,7 +796,19 @@
     {
         if (string.IsNullOrEmpty(gewaehlterSpieltag))
             return spiele;
-        return spiele.Where(s => s.Spieltag == gewaehlterSpieltag).ToList();
+            
+        // Cache für gefilterte Spiele
+        if (!_spieltagCache.ContainsKey(gewaehlterSpieltag))
+        {
+            _spieltagCache[gewaehlterSpieltag] = spiele.Where(s => s.Spieltag == gewaehlterSpieltag).ToList();
+        }
+        return _spieltagCache[gewaehlterSpieltag];
+    }
+    
+    private void CacheLöschen()
+    {
+        _spieltagCache.Clear();
+        _statistikCache.Clear();
     }
     
     private void Prahlen()
