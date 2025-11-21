@@ -43,27 +43,20 @@
             // Berechne Statistiken nur einmal und cache sie
             var statistikKey = $"{SpielerName}_statistik";
             
-            List<Spiel> meineTipps;
-            List<Spiel> beendeteSpiele;
-            int richtigeTipps;
-            int exakteTipps;
-            int differenzTipps;
-            int tendenzTipps;
-            int falscheTipps;
-            double tippQuote;
+            StatistikDaten stats;
             
-            if (!_statistikCache.ContainsKey(statistikKey) || _statistikCache[statistikKey] == null)
+            if (!_statistikCache.ContainsKey(statistikKey))
             {
-                meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
-                beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
-                richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
-                exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
-                differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
-                tendenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 1).Count();
-                falscheTipps = beendeteSpiele.Count - richtigeTipps;
-                tippQuote = beendeteSpiele.Count > 0 ? (richtigeTipps * 100.0 / beendeteSpiele.Count) : 0;
+                var meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
+                var beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
+                var richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
+                var exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
+                var differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
+                var tendenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 1).Count();
+                var falscheTipps = beendeteSpiele.Count - richtigeTipps;
+                var tippQuote = beendeteSpiele.Count > 0 ? (richtigeTipps * 100.0 / beendeteSpiele.Count) : 0;
                 
-                _statistikCache[statistikKey] = new
+                stats = new StatistikDaten
                 {
                     MeineTipps = meineTipps,
                     BeendeteSpiele = beendeteSpiele,
@@ -74,18 +67,12 @@
                     FalscheTipps = falscheTipps,
                     TippQuote = tippQuote
                 };
+                
+                _statistikCache[statistikKey] = stats;
             }
             else
             {
-                dynamic stats = _statistikCache[statistikKey];
-                meineTipps = stats.MeineTipps;
-                beendeteSpiele = stats.BeendeteSpiele;
-                richtigeTipps = stats.RichtigeTipps;
-                exakteTipps = stats.ExakteTipps;
-                differenzTipps = stats.DifferenzTipps;
-                tendenzTipps = stats.TendenzTipps;
-                falscheTipps = stats.FalscheTipps;
-                tippQuote = stats.TippQuote;
+                stats = _statistikCache[statistikKey];
             }
         }
         
@@ -98,7 +85,7 @@
                     <div class="card-body">
                         <div class="row text-center mb-3">
                             <div class="col-6">
-                                <h2 class="text-primary mb-0">@meineTipps.Count</h2>
+                                <h2 class="text-primary mb-0">@stats.MeineTipps.Count</h2>
                                 <small class="text-muted">Tipps abgegeben</small>
                             </div>
                             <div class="col-6">
@@ -113,14 +100,14 @@
                         <div class="mb-2">
                             <div class="d-flex justify-content-between mb-1">
                                 <span><i class="bi bi-check-circle-fill text-success"></i> Richtige Tipps</span>
-                                <strong>@richtigeTipps von @beendeteSpiele.Count (@tippQuote.ToString("F1")%)</strong>
+                                <strong>@stats.RichtigeTipps von @stats.BeendeteSpiele.Count (@stats.TippQuote.ToString("F1")%)</strong>
                             </div>
                             <div class="progress" style="height: 25px;">
-                                @if (beendeteSpiele.Count > 0)
+                                @if (stats.BeendeteSpiele.Count > 0)
                                 {
-                                    var prozent = (richtigeTipps * 100.0 / beendeteSpiele.Count);
-                                    <div class="progress-bar bg-success" style="width: @prozent%">@richtigeTipps</div>
-                                    <div class="progress-bar bg-danger" style="width: @(100 - prozent)%">@falscheTipps</div>
+                                    var prozent = (stats.RichtigeTipps * 100.0 / stats.BeendeteSpiele.Count);
+                                    <div class="progress-bar bg-success" style="width: @prozent%">@stats.RichtigeTipps</div>
+                                    <div class="progress-bar bg-danger" style="width: @(100 - prozent)%">@stats.FalscheTipps</div>
                                 }
                             </div>
                         </div>
@@ -128,19 +115,19 @@
                         <div class="mt-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span><span class="badge bg-success">3 Punkte</span> Exakt richtig</span>
-                                <strong>@exakteTipps</strong>
+                                <strong>@stats.ExakteTipps</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span><span class="badge bg-success">2 Punkte</span> Differenz richtig</span>
-                                <strong>@differenzTipps</strong>
+                                <strong>@stats.DifferenzTipps</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span><span class="badge bg-warning">1 Punkt</span> Tendenz richtig</span>
-                                <strong>@tendenzTipps</strong>
+                                <strong>@stats.TendenzTipps</strong>
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span><span class="badge bg-danger">0 Punkte</span> Falsch</span>
-                                <strong>@falscheTipps</strong>
+                                <strong>@stats.FalscheTipps</strong>
                             </div>
                         </div>
                         
@@ -148,7 +135,7 @@
                         
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Noch offene Spiele:</span>
-                            <strong>@(spiele.Count - beendeteSpiele.Count)</strong>
+                            <strong>@(spiele.Count - stats.BeendeteSpiele.Count)</strong>
                         </div>
                     </div>
                 </div>
@@ -635,6 +622,18 @@
     [Parameter]
     public string SpielerName { get; set; } = "";
 
+    private class StatistikDaten
+    {
+        public List<Spiel> MeineTipps { get; set; } = new();
+        public List<Spiel> BeendeteSpiele { get; set; } = new();
+        public int RichtigeTipps { get; set; }
+        public int ExakteTipps { get; set; }
+        public int DifferenzTipps { get; set; }
+        public int TendenzTipps { get; set; }
+        public int FalscheTipps { get; set; }
+        public double TippQuote { get; set; }
+    }
+
     private List<Spiel> spiele = new();
     private List<Spieler> alleSpieler = new();
     private Spieler? aktuellerSpieler;
@@ -651,7 +650,7 @@
     
     // Performance-Optimierungen: Caching
     private Dictionary<string, List<Spiel>> _spieltagCache = new();
-    private Dictionary<string, object> _statistikCache = new();
+    private Dictionary<string, StatistikDaten> _statistikCache = new();
     private bool _isDatenGeladen = false;
 
     protected override void OnInitialized()
