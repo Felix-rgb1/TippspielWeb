@@ -261,7 +261,8 @@ public class SupabaseService
                 cmd.Parameters.AddWithValue("heim", heimmannschaft);
                 cmd.Parameters.AddWithValue("gast", gastmannschaft);
                 cmd.Parameters.AddWithValue("datum", spielDatum);
-                cmd.ExecuteNonQuery();
+                int affected = cmd.ExecuteNonQuery();
+                Console.WriteLine($"SpielHinzufuegen: Spiel #{spielNummer} {heimmannschaft} vs {gastmannschaft} - {affected} Zeilen betroffen");
             }
             catch (Exception ex)
             {
@@ -298,6 +299,8 @@ public class SupabaseService
                     };
                     spiele.Add(spiel);
                 }
+                
+                Console.WriteLine($"GetAlleSpiele: {spiele.Count} Spiele aus DB geladen");
                 
                 // Lade Tipps für alle Spiele
                 conn.Close();
