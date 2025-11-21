@@ -1040,8 +1040,12 @@
             importierteSpiele = spiele;
             int importiert = 0;
 
+            Console.WriteLine($"Starte Import von {spiele.Count} Spielen...");
+
             foreach (var match in spiele)
             {
+                Console.WriteLine($"Importiere: {match.Team1.TeamName} vs {match.Team2.TeamName} am {match.MatchDateTime}");
+                
                 // Mannschaften automatisch hinzufügen falls nicht vorhanden
                 TippspielService.MannschaftHinzufuegen(match.Team1.TeamName);
                 TippspielService.MannschaftHinzufuegen(match.Team2.TeamName);
@@ -1055,6 +1059,7 @@
                 );
 
                 importiert++;
+                Console.WriteLine($"Spiel {importiert}/{spiele.Count} importiert");
                 
                 // Falls Spiel beendet ist, Ergebnis eintragen
                 if (match.MatchIsFinished)

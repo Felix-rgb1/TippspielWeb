@@ -116,9 +116,18 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var alleSpiele = _supabaseService.GetAlleSpiele();
-            int neueSpielNr = alleSpiele.Count > 0 ? alleSpiele.Max(s => s.SpielNummer) + 1 : 1;
-            _supabaseService.SpielHinzufuegen(neueSpielNr, spieltag, heimmannschaft, gastmannschaft, spielDatum);
+            try
+            {
+                var alleSpiele = _supabaseService.GetAlleSpiele();
+                int neueSpielNr = alleSpiele.Count > 0 ? alleSpiele.Max(s => s.SpielNummer) + 1 : 1;
+                Console.WriteLine($"SpielHinzufuegen: Generiere SpielNr {neueSpielNr} für {heimmannschaft} vs {gastmannschaft}");
+                _supabaseService.SpielHinzufuegen(neueSpielNr, spieltag, heimmannschaft, gastmannschaft, spielDatum);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"FEHLER in SpielHinzufuegen: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+            }
         }
     }
 

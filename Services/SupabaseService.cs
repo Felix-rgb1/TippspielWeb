@@ -11,8 +11,26 @@ public class SupabaseService
 
     public SupabaseService(IConfiguration configuration)
     {
-        _connectionString = configuration.GetConnectionString("Supabase") 
-            ?? throw new InvalidOperationException("Supabase connection string not found");
+        // Prüfe zuerst Environment Variable, dann appsettings.json
+        _connectionString = Environment.GetEnvironmentVariable("SUPABASE_CONNECTION_STRING")
+            ?? configuration.GetConnectionString("Supabase")
+            ?? throw new InvalidOperationException("Supabase connection string not found in environment or appsettings");
+        
+        Console.WriteLine($"SupabaseService initialisiert. Connection String vorhanden: {!string.IsNullOrEmpty(_connectionString)}");
+        
+        // Teste die Verbindung beim Start
+        try
+        {
+            using var conn = GetConnection();
+            conn.Open();
+            Console.WriteLine("✓ Datenbankverbindung erfolgreich getestet!");
+            conn.Close();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"✗ FEHLER bei Datenbankverbindung: {ex.Message}");
+            throw;
+        }
     }
 
     private NpgsqlConnection GetConnection()
