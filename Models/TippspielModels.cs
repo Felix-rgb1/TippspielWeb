@@ -98,6 +98,12 @@ public class Spiel
         return HeimTore.HasValue && GastTore.HasValue;
     }
 
+    public bool IstLive()
+    {
+        // Spiel ist live wenn: Datum in der Vergangenheit liegt, aber noch kein Ergebnis eingetragen
+        return DateTime.Now >= SpielDatum && !IstBeendet() && DateTime.Now <= SpielDatum.AddHours(3);
+    }
+
     public override string ToString()
     {
         string ergebnis = IstBeendet() ? $"{HeimTore}:{GastTore}" : "offen";

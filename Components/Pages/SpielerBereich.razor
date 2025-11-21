@@ -317,9 +317,15 @@
                         var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
                         
                         <div class="list-group-item">
-                            <div class="d-flex justify-content-between">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <strong>@spiel.Heimmannschaft vs @spiel.Gastmannschaft</strong>
-                                <span class="text-muted">@spiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</span>
+                                <div>
+                                    @if (spiel.IstLive())
+                                    {
+                                        <span class="badge bg-danger blink-animation me-2">🔴 LIVE</span>
+                                    }
+                                    <span class="text-muted">@spiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</span>
+                                </div>
                             </div>
                             <div class="mt-2">
                                 <span class="badge bg-primary">Mein Tipp: @tipp.HeimTore:@tipp.GastTore</span>
@@ -403,6 +409,10 @@
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="mb-0">
                                         <strong>@spiel.Heimmannschaft vs @spiel.Gastmannschaft</strong>
+                                        @if (spiel.IstLive())
+                                        {
+                                            <span class="badge bg-danger blink-animation ms-2">🔴 LIVE</span>
+                                        }
                                     </h6>
                                     <span class="text-muted">@spiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</span>
                                 </div>

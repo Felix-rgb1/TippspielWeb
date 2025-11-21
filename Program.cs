@@ -18,6 +18,9 @@ builder.Services.AddSingleton<AuthService>();
 // HttpClient für OpenLigaDB
 builder.Services.AddHttpClient<OpenLigaDBService>();
 
+// Live-Update Hintergrund-Service
+builder.Services.AddHostedService<LiveUpdateService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

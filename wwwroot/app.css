@@ -107,3 +107,13 @@ h1:focus {
     border-width: 2px !important;
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
+
+/* LIVE-Badge Animation */
+@keyframes blink {
+    0%, 50%, 100% { opacity: 1; }
+    25%, 75% { opacity: 0.5; }
+}
+
+.blink-animation {
+    animation: blink 2s ease-in-out infinite;
+}

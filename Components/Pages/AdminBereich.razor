@@ -368,6 +368,26 @@
                     </div>
                 </div>
                 
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <button class="btn btn-success w-100" @onclick="LiveErgebnisseAktualisieren" disabled="@liveUpdateLaeuft">
+                            @if (liveUpdateLaeuft)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <text>Aktualisiere Live-Ergebnisse...</text>
+                            }
+                            else
+                            {
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <text> Live-Ergebnisse jetzt aktualisieren</text>
+                            }
+                        </button>
+                        <small class="text-muted d-block mt-2">
+                            <i class="bi bi-info-circle"></i> Aktualisiert alle offenen Spiele von heute automatisch
+                        </small>
+                    </div>
+                </div>
+                
                 @if (!string.IsNullOrEmpty(importMeldung))
                 {
                     <div class="alert @(importErfolgreich ? "alert-success" : "alert-danger")">
@@ -1068,6 +1088,84 @@
         finally
         {
             importLaeuft = false;
+            StateHasChanged();
+        }
+    }
+
+    // Live-Ergebnisse aktualisieren
+    private bool liveUpdateLaeuft = false;
+    private string liveUpdateMeldung = "";
+
+    private async Task LiveErgebnisseAktualisieren()
+    {
+        liveUpdateLaeuft = true;
+        liveUpdateMeldung = "";
+        importMeldung = ""; // Clear import message
+        StateHasChanged();
+
+        try
+        {
+            var alleSpiele = spiele;
+            var heuteSpiele = alleSpiele.Where(s => 
+                s.SpielDatum.Date == DateTime.Today && 
+                !s.IstBeendet()
+            ).ToList();
+
+            if (!heuteSpiele.Any())
+            {
+                importMeldung = "Keine offenen Spiele heute gefunden.";
+                importErfolgreich = false;
+                return;
+            }
+
+            var liveSpiele = await OpenLigaDBService.GetLiveSpieleAsync();
+            if (liveSpiele == null || !liveSpiele.Any())
+            {
+                importMeldung = "Konnte keine Live-Daten von OpenLigaDB abrufen.";
+                importErfolgreich = false;
+                return;
+            }
+
+            int aktualisiert = 0;
+            foreach (var spiel in heuteSpiele)
+            {
+                var liveSpiel = liveSpiele.FirstOrDefault(ls => 
+                    ls.Team1.TeamName == spiel.Heimmannschaft &&
+                    ls.Team2.TeamName == spiel.Gastmannschaft &&
+                    ls.MatchDateTime.Date == spiel.SpielDatum.Date
+                );
+
+                if (liveSpiel != null && liveSpiel.MatchIsFinished)
+                {
+                    var (heim, gast) = liveSpiel.GetErgebnis();
+                    if (heim.HasValue && gast.HasValue)
+                    {
+                        TippspielService.ErgebnisEintragen(spiel.SpielNummer, heim.Value, gast.Value);
+                        aktualisiert++;
+                    }
+                }
+            }
+
+            if (aktualisiert > 0)
+            {
+                importMeldung = $"✅ {aktualisiert} Spiel-Ergebnisse wurden aktualisiert!";
+                importErfolgreich = true;
+                Aktualisieren();
+            }
+            else
+            {
+                importMeldung = $"Keine neuen Ergebnisse gefunden. {heuteSpiele.Count} Spiel(e) von heute noch offen.";
+                importErfolgreich = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            importMeldung = $"Fehler beim Live-Update: {ex.Message}";
+            importErfolgreich = false;
+        }
+        finally
+        {
+            liveUpdateLaeuft = false;
             StateHasChanged();
         }
     }
