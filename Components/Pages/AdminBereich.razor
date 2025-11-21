@@ -3,6 +3,7 @@
 @using TippspielWeb.Services
 @using TippspielWeb.Models
 @inject TippspielService TippspielService
+@inject OpenLigaDBService OpenLigaDBService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 
@@ -14,6 +15,9 @@
     </li>
     <li class="nav-item">
         <button class="nav-link @(tab == "spiele" ? "active" : "")" @onclick="@(() => tab = "spiele")">Spiele</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(tab == "bundesliga" ? "active" : "")" @onclick="@(() => tab = "bundesliga")">Bundesliga Import</button>
     </li>
     <li class="nav-item">
         <button class="nav-link @(tab == "tipps" ? "active" : "")" @onclick="@(() => tab = "tipps")">Tipps</button>
@@ -318,6 +322,94 @@
                         }
                     </div>
                 </div>
+            </div>
+        </div>
+    }
+    else if (tab == "bundesliga")
+    {
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-download"></i> Bundesliga Spielplan importieren</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Importiere Spiele direkt von OpenLigaDB (Bundesliga)
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Saison</label>
+                        <select class="form-select" @bind="importSaison">
+                            <option value="2024">2024/2025</option>
+                            <option value="2023">2023/2024</option>
+                            <option value="2022">2022/2023</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Spieltag</label>
+                        <input type="number" class="form-control" @bind="importSpieltag" min="1" max="34" placeholder="1-34" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" @onclick="BundesligaSpieleImportieren" disabled="@importLaeuft">
+                            @if (importLaeuft)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <text>Importiere...</text>
+                            }
+                            else
+                            {
+                                <i class="bi bi-download"></i>
+                                <text> Spieltag importieren</text>
+                            }
+                        </button>
+                    </div>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(importMeldung))
+                {
+                    <div class="alert @(importErfolgreich ? "alert-success" : "alert-danger")">
+                        @importMeldung
+                    </div>
+                }
+                
+                @if (importierteSpiele.Any())
+                {
+                    <h6 class="mt-3">Gefundene Spiele (@importierteSpiele.Count):</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Heimmannschaft</th>
+                                    <th>Gastmannschaft</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var spiel in importierteSpiele)
+                                {
+                                    <tr>
+                                        <td>@spiel.MatchDateTime.ToString("dd.MM.yyyy HH:mm")</td>
+                                        <td>@spiel.Team1.TeamName</td>
+                                        <td>@spiel.Team2.TeamName</td>
+                                        <td>
+                                            @if (spiel.MatchIsFinished)
+                                            {
+                                                var (heim, gast) = spiel.GetErgebnis();
+                                                <span class="badge bg-success">Beendet @heim:@gast</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Offen</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
     }
@@ -894,5 +986,90 @@
     {
         var excelDaten = TippspielService.ExportiereNachExcel();
         await JS.InvokeVoidAsync("downloadFile", "Tippspiel.xlsx", Convert.ToBase64String(excelDaten));
+    }
+
+    // Bundesliga Import
+    private int importSaison = 2024;
+    private int importSpieltag = 1;
+    private bool importLaeuft = false;
+    private string importMeldung = "";
+    private bool importErfolgreich = false;
+    private List<OpenLigaMatch> importierteSpiele = new();
+
+    private async Task BundesligaSpieleImportieren()
+    {
+        importLaeuft = true;
+        importMeldung = "";
+        importErfolgreich = false;
+        importierteSpiele.Clear();
+        StateHasChanged();
+
+        try
+        {
+            var spiele = await OpenLigaDBService.GetAktuellerSpieltagAsync(importSaison, importSpieltag);
+            
+            if (spiele == null || !spiele.Any())
+            {
+                importMeldung = "Keine Spiele gefunden für diese Saison/Spieltag-Kombination.";
+                importErfolgreich = false;
+                return;
+            }
+
+            importierteSpiele = spiele;
+            int importiert = 0;
+
+            foreach (var match in spiele)
+            {
+                // Mannschaften automatisch hinzufügen falls nicht vorhanden
+                TippspielService.MannschaftHinzufuegen(match.Team1.TeamName);
+                TippspielService.MannschaftHinzufuegen(match.Team2.TeamName);
+
+                // Spiel hinzufügen
+                bool erfolg = TippspielService.SpielHinzufuegen(
+                    match.Group.GroupName,
+                    match.Team1.TeamName,
+                    match.Team2.TeamName,
+                    match.MatchDateTime
+                );
+
+                if (erfolg)
+                {
+                    importiert++;
+                    
+                    // Falls Spiel beendet ist, Ergebnis eintragen
+                    if (match.MatchIsFinished)
+                    {
+                        var (heim, gast) = match.GetErgebnis();
+                        if (heim.HasValue && gast.HasValue)
+                        {
+                            var spielNummer = TippspielService.GetAlleSpiele()
+                                .Where(s => s.Heimmannschaft == match.Team1.TeamName && 
+                                           s.Gastmannschaft == match.Team2.TeamName &&
+                                           s.SpielDatum.Date == match.MatchDateTime.Date)
+                                .FirstOrDefault()?.SpielNummer;
+                            
+                            if (spielNummer.HasValue)
+                            {
+                                TippspielService.ErgebnisEintragen(spielNummer.Value, heim.Value, gast.Value);
+                            }
+                        }
+                    }
+                }
+            }
+
+            importMeldung = $"Erfolgreich {importiert} von {spiele.Count} Spielen importiert!";
+            importErfolgreich = true;
+            Aktualisieren();
+        }
+        catch (Exception ex)
+        {
+            importMeldung = $"Fehler beim Import: {ex.Message}";
+            importErfolgreich = false;
+        }
+        finally
+        {
+            importLaeuft = false;
+            StateHasChanged();
+        }
     }
 }

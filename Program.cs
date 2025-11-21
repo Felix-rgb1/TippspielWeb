@@ -15,6 +15,9 @@ builder.Services.AddRazorComponents()
 builder.Services.AddSingleton<TippspielService>();
 builder.Services.AddSingleton<AuthService>();
 
+// HttpClient für OpenLigaDB
+builder.Services.AddHttpClient<OpenLigaDBService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
