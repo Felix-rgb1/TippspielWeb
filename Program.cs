@@ -11,6 +11,9 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// Supabase Service für Datenbankzugriff
+builder.Services.AddSingleton<SupabaseService>();
+
 // Tippspiel Service als Singleton registrieren
 builder.Services.AddSingleton<TippspielService>();
 builder.Services.AddSingleton<AuthService>();

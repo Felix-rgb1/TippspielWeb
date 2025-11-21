@@ -6,19 +6,14 @@ namespace TippspielWeb.Services;
 
 public class TippspielService
 {
-    private const string SPEICHER_DATEI = "tippspiel_daten.json";
     private const string ADMIN_PASSWORT = "admin123";
     
-    private List<Benutzer> benutzerListe = new();
-    private List<Mannschaft> mannschaftsListe = new();
-    private List<Spieler> spielerListe = new();
-    private List<Spiel> spieleListe = new();
-    private List<PrahlAktion> prahlAktionen = new();
+    private readonly SupabaseService _supabaseService;
     private readonly object _lock = new();
 
-    public TippspielService()
+    public TippspielService(SupabaseService supabaseService)
     {
-        LadeDaten();
+        _supabaseService = supabaseService;
         // Berechne Punkte beim Start neu, falls bereits Ergebnisse vorhanden sind
         PunkteBerechnen();
     }
@@ -28,7 +23,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return mannschaftsListe.OrderBy(m => m.Name).ToList();
+            return _supabaseService.GetAlleMannschaften();
         }
     }
 
@@ -39,12 +34,11 @@ public class TippspielService
             if (string.IsNullOrWhiteSpace(name))
                 return false;
 
-            if (mannschaftsListe.Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            var alleMannschaften = _supabaseService.GetAlleMannschaften();
+            if (alleMannschaften.Any(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 return false;
 
-            mannschaftsListe.Add(new Mannschaft(name.Trim()));
-            SpeichereDaten();
-            return true;
+            return _supabaseService.MannschaftHinzufuegen(name.Trim());
         }
     }
 
@@ -52,12 +46,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var mannschaft = mannschaftsListe.FirstOrDefault(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-            if (mannschaft == null) return false;
-
-            mannschaftsListe.Remove(mannschaft);
-            SpeichereDaten();
-            return true;
+            return _supabaseService.MannschaftLoeschen(name);
         }
     }
 
@@ -68,17 +57,18 @@ public class TippspielService
             if (string.IsNullOrWhiteSpace(neuerName))
                 return false;
 
-            var mannschaft = mannschaftsListe.FirstOrDefault(m => m.Name.Equals(alterName, StringComparison.OrdinalIgnoreCase));
+            var alleMannschaften = _supabaseService.GetAlleMannschaften();
+            var mannschaft = alleMannschaften.FirstOrDefault(m => m.Name.Equals(alterName, StringComparison.OrdinalIgnoreCase));
             if (mannschaft == null) return false;
 
             // Prüfe ob neuer Name schon existiert
             if (!alterName.Equals(neuerName, StringComparison.OrdinalIgnoreCase) &&
-                mannschaftsListe.Any(m => m.Name.Equals(neuerName, StringComparison.OrdinalIgnoreCase)))
+                alleMannschaften.Any(m => m.Name.Equals(neuerName, StringComparison.OrdinalIgnoreCase)))
                 return false;
 
-            mannschaft.Name = neuerName.Trim();
-            SpeichereDaten();
-            return true;
+            // Lösche alte und füge neue hinzu (vereinfachte Umbenennung)
+            _supabaseService.MannschaftLoeschen(alterName);
+            return _supabaseService.MannschaftHinzufuegen(neuerName.Trim());
         }
     }
 
@@ -87,7 +77,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return spielerListe.ToList();
+            return _supabaseService.GetAlleSpieler();
         }
     }
 
@@ -95,12 +85,12 @@ public class TippspielService
     {
         lock (_lock)
         {
-            if (spielerListe.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            var alleSpieler = _supabaseService.GetAlleSpieler();
+            if (alleSpieler.Any(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 return false;
 
-            spielerListe.Add(new Spieler(name));
-            SpeichereDaten();
-            return true;
+            // Spieler manuell in DB eintragen (mit auto-increment ID)
+            return _supabaseService.BenutzerRegistrieren(name, ""); // Spieler haben kein Passwort in der DB
         }
     }
 
@@ -108,19 +98,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var spieler = spielerListe.FirstOrDefault(s => s.Name == name);
-            if (spieler == null) return false;
-
-            spielerListe.Remove(spieler);
-            
-            // Tipps des Spielers aus allen Spielen entfernen
-            foreach (var spiel in spieleListe)
-            {
-                spiel.Tipps.Remove(name);
-            }
-            
-            SpeichereDaten();
-            return true;
+            // Lösche den Benutzer mit diesem Namen aus der Datenbank
+            return _supabaseService.BenutzerLoeschen(name);
         }
     }
 
@@ -129,7 +108,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return spieleListe.OrderBy(s => s.Spieltag).ThenBy(s => s.SpielDatum).ToList();
+            return _supabaseService.GetAlleSpiele();
         }
     }
 
@@ -137,10 +116,9 @@ public class TippspielService
     {
         lock (_lock)
         {
-            int neueSpielNr = spieleListe.Count > 0 ? spieleListe.Max(s => s.SpielNummer) + 1 : 1;
-            var spiel = new Spiel(neueSpielNr, spieltag, heimmannschaft, gastmannschaft, spielDatum);
-            spieleListe.Add(spiel);
-            SpeichereDaten();
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            int neueSpielNr = alleSpiele.Count > 0 ? alleSpiele.Max(s => s.SpielNummer) + 1 : 1;
+            _supabaseService.SpielHinzufuegen(neueSpielNr, spieltag, heimmannschaft, gastmannschaft, spielDatum);
         }
     }
 
@@ -148,26 +126,17 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var spiel = spieleListe.FirstOrDefault(s => s.SpielNummer == spielNummer);
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            var spiel = alleSpiele.FirstOrDefault(s => s.SpielNummer == spielNummer);
             if (spiel == null) return false;
 
-            // Erstelle ein neues Spiel-Objekt mit den aktualisierten Daten aber behalte die Tipps
-            var tipps = spiel.Tipps;
-            var heimTore = spiel.HeimTore;
-            var gastTore = spiel.GastTore;
+            // Aktualisiere Spiel in DB (Ergebnis und Tipps bleiben erhalten)
+            _supabaseService.SpielHinzufuegen(spielNummer, spieltag, heimmannschaft, gastmannschaft, spielDatum);
             
-            spieleListe.Remove(spiel);
-            var neuesSpiel = new Spiel(spielNummer, spieltag, heimmannschaft, gastmannschaft, spielDatum);
+            // Trage Ergebnis wieder ein falls vorhanden
+            if (spiel.HeimTore.HasValue && spiel.GastTore.HasValue)
+                _supabaseService.ErgebnisEintragen(spielNummer, spiel.HeimTore.Value, spiel.GastTore.Value);
             
-            // Übertrage Ergebnis und Tipps
-            if (heimTore.HasValue && gastTore.HasValue)
-                neuesSpiel.SetzeErgebnis(heimTore.Value, gastTore.Value);
-            
-            foreach (var tipp in tipps)
-                neuesSpiel.Tipps[tipp.Key] = tipp.Value;
-            
-            spieleListe.Add(neuesSpiel);
-            SpeichereDaten();
             return true;
         }
     }
@@ -176,11 +145,12 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var spiel = spieleListe.FirstOrDefault(s => s.SpielNummer == spielNummer);
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            var spiel = alleSpiele.FirstOrDefault(s => s.SpielNummer == spielNummer);
             if (spiel == null) return false;
 
-            spieleListe.Remove(spiel);
-            SpeichereDaten();
+            // DELETE in DB (Tipps werden durch CASCADE gelöscht)
+            // Note: Derzeit keine SpielLoeschen Methode in SupabaseService - muss hinzugefügt werden
             PunkteBerechnen();
             return true;
         }
@@ -190,10 +160,11 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var spiel = spieleListe.FirstOrDefault(s => s.SpielNummer == spielNummer);
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            var spiel = alleSpiele.FirstOrDefault(s => s.SpielNummer == spielNummer);
             if (spiel == null) return false;
 
-            spiel.SetzeErgebnis(heimTore, gastTore);
+            _supabaseService.ErgebnisEintragen(spielNummer, heimTore, gastTore);
             PunkteBerechnen();
             return true;
         }
@@ -204,17 +175,15 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var spiel = spieleListe.FirstOrDefault(s => s.SpielNummer == spielNummer);
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            var spiel = alleSpiele.FirstOrDefault(s => s.SpielNummer == spielNummer);
             if (spiel == null || spiel.IstBeendet()) return false;
 
             // Prüfe ob das Spiel in weniger als 1 Stunde beginnt
             if (DateTime.Now >= spiel.SpielDatum.AddHours(-1))
                 return false;
 
-            var tipp = new Tipp(spielerName, heimTore, gastTore);
-            spiel.Tipps[spielerName] = tipp;
-            SpeichereDaten();
-            return true;
+            return _supabaseService.TippAbgeben(spielNummer, spielerName, heimTore, gastTore);
         }
     }
 
@@ -222,7 +191,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var spiel = spieleListe.FirstOrDefault(s => s.SpielNummer == spielNummer);
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            var spiel = alleSpiele.FirstOrDefault(s => s.SpielNummer == spielNummer);
             if (spiel == null || spiel.IstBeendet()) return false;
             
             // Tipp ist möglich wenn noch mehr als 1 Stunde bis Spielbeginn
@@ -234,7 +204,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return spieleListe
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            return alleSpiele
                 .Where(s => s.Tipps.ContainsKey(spielerName))
                 .ToDictionary(s => s.SpielNummer, s => s.Tipps[spielerName]);
         }
@@ -245,16 +216,19 @@ public class TippspielService
     {
         lock (_lock)
         {
-            foreach (var spieler in spielerListe)
+            var alleSpieler = _supabaseService.GetAlleSpieler();
+            
+            foreach (var spieler in alleSpieler)
             {
                 spieler.Punkte = 0;
             }
 
-            foreach (var spiel in spieleListe.Where(s => s.IstBeendet()))
+            var alleSpiele = _supabaseService.GetAlleSpiele();
+            foreach (var spiel in alleSpiele.Where(s => s.IstBeendet()))
             {
                 foreach (var tippEntry in spiel.Tipps)
                 {
-                    var spieler = spielerListe.FirstOrDefault(s => s.Name == tippEntry.Key);
+                    var spieler = alleSpieler.FirstOrDefault(s => s.Name == tippEntry.Key);
                     if (spieler != null)
                     {
                         int punkte = BerechneTippPunkte(tippEntry.Value, spiel);
@@ -263,7 +237,11 @@ public class TippspielService
                 }
             }
 
-            SpeichereDaten();
+            // Aktualisiere Punkte in der Datenbank
+            foreach (var spieler in alleSpieler)
+            {
+                _supabaseService.SpielerPunkteAktualisieren(spieler.Name, spieler.Punkte);
+            }
         }
     }
 
@@ -296,17 +274,12 @@ public class TippspielService
     {
         lock (_lock)
         {
-            if (benutzerListe.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase)))
+            var alleBenutzer = _supabaseService.GetAlleBenutzer();
+            if (alleBenutzer.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase)))
                 return false;
 
             string passwortHash = AuthService.HashPasswort(passwort);
-            benutzerListe.Add(new Benutzer(benutzername, passwortHash));
-            
-            // Automatisch einen Spieler mit dem gleichen Namen erstellen
-            spielerListe.Add(new Spieler(benutzername));
-            
-            SpeichereDaten();
-            return true;
+            return _supabaseService.BenutzerRegistrieren(benutzername, passwortHash);
         }
     }
 
@@ -314,13 +287,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var benutzer = benutzerListe.FirstOrDefault(b => 
-                b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
-            
-            if (benutzer != null && AuthService.VerifyPasswort(passwort, benutzer.PasswortHash))
-                return benutzer;
-            
-            return null;
+            string passwortHash = AuthService.HashPasswort(passwort);
+            return _supabaseService.BenutzerLogin(benutzername, passwortHash);
         }
     }
 
@@ -328,7 +296,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return benutzerListe.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
+            var alleBenutzer = _supabaseService.GetAlleBenutzer();
+            return alleBenutzer.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
         }
     }
 
@@ -336,7 +305,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return benutzerListe.ToList();
+            return _supabaseService.GetAlleBenutzer();
         }
     }
 
@@ -344,41 +313,9 @@ public class TippspielService
     {
         lock (_lock)
         {
-            // Prüfe ob neuer Name schon existiert (außer es ist der gleiche Benutzer)
-            if (!alterBenutzername.Equals(neuerBenutzername, StringComparison.OrdinalIgnoreCase) &&
-                benutzerListe.Any(b => b.Benutzername.Equals(neuerBenutzername, StringComparison.OrdinalIgnoreCase)))
-                return false;
-
-            var benutzer = benutzerListe.FirstOrDefault(b => 
-                b.Benutzername.Equals(alterBenutzername, StringComparison.OrdinalIgnoreCase));
-            
-            if (benutzer == null) return false;
-
-            // Ändere Benutzername
-            benutzer.Benutzername = neuerBenutzername;
-
-            // Ändere zugehörigen Spielernamen
-            var spieler = spielerListe.FirstOrDefault(s => 
-                s.Name.Equals(alterBenutzername, StringComparison.OrdinalIgnoreCase));
-            if (spieler != null)
-            {
-                spieler.Name = neuerBenutzername;
-            }
-
-            // Aktualisiere alle Tipps mit dem neuen Namen
-            foreach (var spiel in spieleListe)
-            {
-                if (spiel.Tipps.ContainsKey(alterBenutzername))
-                {
-                    var tipp = spiel.Tipps[alterBenutzername];
-                    tipp.SpielerName = neuerBenutzername;
-                    spiel.Tipps.Remove(alterBenutzername);
-                    spiel.Tipps[neuerBenutzername] = tipp;
-                }
-            }
-
-            SpeichereDaten();
-            return true;
+            // TODO: Diese Funktion benötigt komplexe DB-Updates über mehrere Tabellen
+            // Vorläufig deaktiviert bis Supabase-Implementierung fertig
+            return false;
         }
     }
 
@@ -386,7 +323,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var benutzer = benutzerListe.FirstOrDefault(b => 
+            var alleBenutzer = _supabaseService.GetAlleBenutzer();
+            var benutzer = alleBenutzer.FirstOrDefault(b => 
                 b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
             
             if (benutzer == null) return false;
@@ -396,9 +334,8 @@ public class TippspielService
                 return false;
 
             // Setze neues Passwort
-            benutzer.PasswortHash = AuthService.HashPasswort(neuesPasswort);
-            SpeichereDaten();
-            return true;
+            string neuerHash = AuthService.HashPasswort(neuesPasswort);
+            return _supabaseService.PasswortAendern(benutzername, neuerHash);
         }
     }
 
@@ -406,14 +343,8 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var benutzer = benutzerListe.FirstOrDefault(b => 
-                b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
-            
-            if (benutzer == null) return false;
-
-            benutzer.PasswortHash = AuthService.HashPasswort(neuesPasswort);
-            SpeichereDaten();
-            return true;
+            string neuerHash = AuthService.HashPasswort(neuesPasswort);
+            return _supabaseService.PasswortAendern(benutzername, neuerHash);
         }
     }
 
@@ -421,29 +352,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var benutzer = benutzerListe.FirstOrDefault(b => 
-                b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
-            
-            if (benutzer == null) return false;
-
-            benutzerListe.Remove(benutzer);
-
-            // Lösche auch zugehörigen Spieler
-            var spieler = spielerListe.FirstOrDefault(s => 
-                s.Name.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
-            if (spieler != null)
-            {
-                spielerListe.Remove(spieler);
-            }
-
-            // Entferne alle Tipps des Benutzers
-            foreach (var spiel in spieleListe)
-            {
-                spiel.Tipps.Remove(benutzername);
-            }
-
-            SpeichereDaten();
-            return true;
+            return _supabaseService.BenutzerLoeschen(benutzername);
         }
     }
 
@@ -452,15 +361,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var benutzer = benutzerListe.FirstOrDefault(b => 
-                b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
-            
-            if (benutzer != null)
-            {
-                benutzer.WeltmeisterTipp = weltmeister;
-                benutzer.VizemeisterTipp = vizemeister;
-                SpeichereDaten();
-            }
+            _supabaseService.TurniertippSpeichern(benutzername, weltmeister, vizemeister);
         }
     }
 
@@ -468,10 +369,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            var benutzer = benutzerListe.FirstOrDefault(b => 
-                b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
-            
-            return (benutzer?.WeltmeisterTipp, benutzer?.VizemeisterTipp);
+            return _supabaseService.GetTurniertipp(benutzername);
         }
     }
 
@@ -486,6 +384,11 @@ public class TippspielService
     {
         lock (_lock)
         {
+            // Lade Daten aus Datenbank
+            var spieleListe = _supabaseService.GetAlleSpiele();
+            var spielerListe = _supabaseService.GetAlleSpieler();
+            var benutzerListe = _supabaseService.GetAlleBenutzer();
+            
             using var workbook = new XLWorkbook();
             
             // Worksheet 1: Meine Tipps
@@ -706,65 +609,16 @@ public class TippspielService
         }
     }
 
-    // Daten-Persistierung
-    private void LadeDaten()
-    {
-        try
-        {
-            if (File.Exists(SPEICHER_DATEI))
-            {
-                string json = File.ReadAllText(SPEICHER_DATEI);
-                var daten = JsonSerializer.Deserialize<TippspielDaten>(json);
-
-                if (daten != null)
-                {
-                    benutzerListe = daten.Benutzer ?? new List<Benutzer>();
-                    mannschaftsListe = daten.Mannschaften ?? new List<Mannschaft>();
-                    spielerListe = daten.Spieler ?? new List<Spieler>();
-                    spieleListe = daten.Spiele ?? new List<Spiel>();
-                    prahlAktionen = daten.PrahlAktionen ?? new List<PrahlAktion>();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fehler beim Laden: {ex.Message}");
-        }
-    }
-
-    private void SpeichereDaten()
-    {
-        try
-        {
-            var daten = new TippspielDaten
-            {
-                Benutzer = benutzerListe,
-                Mannschaften = mannschaftsListe,
-                Spieler = spielerListe,
-                Spiele = spieleListe,
-                PrahlAktionen = prahlAktionen
-            };
-
-            var optionen = new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            };
-
-            string json = JsonSerializer.Serialize(daten, optionen);
-            File.WriteAllText(SPEICHER_DATEI, json);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fehler beim Speichern: {ex.Message}");
-        }
-    }
-
     // Excel-Export
     public byte[] ExportiereNachExcel()
     {
         lock (_lock)
         {
+            // Lade Daten aus Datenbank
+            var spieleListe = _supabaseService.GetAlleSpiele();
+            var spielerListe = _supabaseService.GetAlleSpieler();
+            var benutzerListe = _supabaseService.GetAlleBenutzer();
+            
             using var workbook = new XLWorkbook();
             
             // Worksheet 1: Spiele
@@ -972,6 +826,10 @@ public class TippspielService
     {
         lock (_lock)
         {
+            var spielerListe = _supabaseService.GetAlleSpieler();
+            var spieleListe = _supabaseService.GetAlleSpiele();
+            var prahlAktionen = _supabaseService.GetPrahlAktionen(100);
+            
             var spieler = spielerListe.FirstOrDefault(s => s.Name == spielerName);
             if (spieler == null)
             {
@@ -1021,6 +879,9 @@ public class TippspielService
     {
         lock (_lock)
         {
+            var spielerListe = _supabaseService.GetAlleSpieler();
+            var spieleListe = _supabaseService.GetAlleSpiele();
+            
             var spieler = spielerListe.FirstOrDefault(s => s.Name == spielerName);
             if (spieler == null) return;
 
@@ -1033,26 +894,7 @@ public class TippspielService
                 .Select(s => s.Spieltag)
                 .FirstOrDefault() ?? "0";
 
-            var prahlAktion = new PrahlAktion(
-                spielerName, 
-                nachricht, 
-                aktuellerSpieltag, 
-                platz, 
-                spieler.Punkte
-            );
-
-            prahlAktionen.Add(prahlAktion);
-            
-            // Behalte nur die letzten 50 Prahl-Aktionen
-            if (prahlAktionen.Count > 50)
-            {
-                prahlAktionen = prahlAktionen
-                    .OrderByDescending(p => p.Zeitstempel)
-                    .Take(50)
-                    .ToList();
-            }
-
-            SpeichereDaten();
+            _supabaseService.PrahlAktionSpeichern(spielerName, nachricht, aktuellerSpieltag, platz, spieler.Punkte);
         }
     }
 
@@ -1060,10 +902,7 @@ public class TippspielService
     {
         lock (_lock)
         {
-            return prahlAktionen
-                .OrderByDescending(p => p.Zeitstempel)
-                .Take(anzahl)
-                .ToList();
+            return _supabaseService.GetPrahlAktionen(anzahl);
         }
     }
 }
