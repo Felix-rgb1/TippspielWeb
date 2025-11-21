@@ -120,7 +120,7 @@
                             </div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <span><span class="badge bg-danger">0 Punkte</span> Falsch</span>
-                                <strong>@falscheTipps</strong>
+                                <strong>@stats.FalscheTipps</strong>
                             </div>
                         </div>
                         
@@ -128,7 +128,7 @@
                         
                         <div class="d-flex justify-content-between">
                             <span class="text-muted">Noch offene Spiele:</span>
-                            <strong>@(gesamtSpiele - beendeteSpiele.Count)</strong>
+                            <strong>@(spiele.Count - stats.BeendeteSpiele.Count)</strong>
                         </div>
                     </div>
                 </div>
