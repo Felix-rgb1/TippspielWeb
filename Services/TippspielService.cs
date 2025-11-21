@@ -275,10 +275,21 @@ public class TippspielService
         lock (_lock)
         {
             var alleBenutzer = _supabaseService.GetAlleBenutzer();
-            if (alleBenutzer.Any(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase)))
+            var existierenderBenutzer = alleBenutzer.FirstOrDefault(b => b.Benutzername.Equals(benutzername, StringComparison.OrdinalIgnoreCase));
+            
+            // Wenn Benutzer bereits mit Passwort existiert, ablehnen
+            if (existierenderBenutzer != null && !string.IsNullOrEmpty(existierenderBenutzer.PasswortHash))
                 return false;
 
             string passwortHash = AuthService.HashPasswort(passwort);
+            
+            // Wenn nur Spieler-Platzhalter existiert (ohne Passwort), aktualisiere das Passwort
+            if (existierenderBenutzer != null && string.IsNullOrEmpty(existierenderBenutzer.PasswortHash))
+            {
+                return _supabaseService.PasswortAendern(benutzername, passwortHash);
+            }
+            
+            // Neuer Benutzer
             return _supabaseService.BenutzerRegistrieren(benutzername, passwortHash);
         }
     }
