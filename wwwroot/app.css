@@ -117,3 +117,485 @@ h1:focus {
 .blink-animation {
     animation: blink 2s ease-in-out infinite;
 }
+
+/* ============================================
+   MOBILE OPTIMIERUNGEN
+   ============================================ */
+
+/* Basis-Verbesserungen für Touch-Geräte */
+@media (max-width: 768px) {
+    /* Verbesserte Touch-Targets (min. 44x44px) */
+    .btn, button, .nav-link, a.nav-link {
+        min-height: 44px;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Verbesserte Lesbarkeit auf kleinen Bildschirmen */
+    body {
+        font-size: 16px; /* Verhindert Auto-Zoom auf iOS */
+        line-height: 1.5;
+    }
+
+    /* Optimierte Container-Abstände */
+    .container, .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* Cards responsive gestalten */
+    .card {
+        margin-bottom: 1rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    /* Tabellen horizontal scrollbar */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        font-size: 0.875rem;
+    }
+
+    /* Formulare optimieren */
+    .form-control, .form-select {
+        font-size: 16px; /* Verhindert Auto-Zoom */
+        min-height: 44px;
+    }
+
+    /* Navigation Tabs scrollbar */
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .nav-tabs .nav-item {
+        white-space: nowrap;
+    }
+
+    .nav-tabs .nav-link {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    /* Badges und kleine Texte lesbar machen */
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.35em 0.65em;
+    }
+
+    /* Buttons in voller Breite auf Mobile */
+    .btn-group-vertical .btn,
+    .d-grid .btn {
+        width: 100%;
+    }
+
+    /* Abstand zwischen Buttons */
+    .btn + .btn {
+        margin-top: 0.5rem;
+    }
+
+    /* Float-End Buttons unter Content auf Mobile */
+    .float-end {
+        float: none !important;
+        display: block;
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    /* Alerts kompakter */
+    .alert {
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+
+    /* Modal-Dialoge optimieren */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    /* Reduzierte Paddings für Platzersparnis */
+    .px-4 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .py-4 {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    /* Überschriften anpassen */
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    h3 {
+        font-size: 1.25rem;
+    }
+
+    /* Content-Bereich optimieren */
+    .content {
+        padding-top: 0.5rem;
+    }
+
+    /* Listen kompakter */
+    .list-group-item {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    /* Progress Bars sichtbarer */
+    .progress {
+        height: 1.5rem !important;
+        font-size: 0.875rem;
+    }
+}
+
+/* Sehr kleine Geräte (< 576px) */
+@media (max-width: 575.98px) {
+    /* Noch kompaktere Darstellung */
+    .card-header {
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
+
+    /* Stack Columns */
+    .col-md-6, .col-md-4, .col-md-3 {
+        margin-bottom: 1rem;
+    }
+
+    /* Kleinere Abstände */
+    .mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+
+    .mt-3 {
+        margin-top: 0.75rem !important;
+    }
+
+    /* Tabellen noch kompakter */
+    table {
+        font-size: 0.8rem;
+    }
+
+    th, td {
+        padding: 0.5rem !important;
+    }
+
+    /* Input Groups vertikal stapeln */
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group > * {
+        width: 100% !important;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Landscape-Modus für Smartphones */
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Kompaktere Höhen im Landscape */
+    .card {
+        margin-bottom: 0.5rem;
+    }
+
+    .card-body {
+        padding: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.375rem 0.75rem;
+        min-height: 38px;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.375rem 0.75rem;
+    }
+}
+
+/* Touch-optimierte Interaktionen */
+@media (hover: none) and (pointer: coarse) {
+    /* Größere Click-Areas für Touch */
+    a, button, .btn, .nav-link {
+        padding: 0.75rem 1rem;
+    }
+
+    /* Entferne Hover-Effekte auf Touch-Geräten */
+    .btn:hover,
+    .nav-link:hover {
+        opacity: 0.9;
+    }
+
+    /* Verbesserte Touch-Feedback */
+    .btn:active,
+    .nav-link:active {
+        transform: scale(0.98);
+    }
+}
+
+/* ============================================
+   TIPPSPIEL-SPEZIFISCHE MOBILE OPTIMIERUNGEN
+   ============================================ */
+
+/* Spielkarten auf Mobile */
+@media (max-width: 768px) {
+    /* Kompakte Spiel-Cards */
+    .card .row.align-items-center {
+        row-gap: 0.5rem;
+    }
+
+    /* Tipp-Eingaben optimieren */
+    input[type="number"] {
+        font-size: 1.1rem;
+        text-align: center;
+        padding: 0.5rem;
+    }
+
+    /* Button-Text auf Mobile kürzen */
+    .btn .bi {
+        margin-right: 0.25rem;
+    }
+
+    /* Tabelle scrollbar mit sticky Header */
+    .table-responsive {
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background-color: #f8f9fa;
+        z-index: 10;
+        box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Stat Cards optimieren */
+    .card .row.text-center .col-6,
+    .card .row.text-center .col-4 {
+        padding: 0.5rem;
+    }
+
+    /* Badge größer und lesbarer */
+    .badge.bg-success,
+    .badge.bg-warning,
+    .badge.bg-danger {
+        font-size: 0.9rem;
+        padding: 0.4em 0.7em;
+    }
+
+    /* Progress Bars beschriften */
+    .progress-bar {
+        font-size: 0.8rem;
+        min-width: 2rem;
+    }
+
+    /* Card Header Icons */
+    .card-header i {
+        margin-right: 0.5rem;
+    }
+
+    /* Live Badge prominenter */
+    .badge.blink-animation {
+        font-size: 1rem;
+        padding: 0.5em 0.8em;
+    }
+
+    /* Filter-Select kompakter */
+    .form-select[style*="width: auto"] {
+        width: 100% !important;
+        margin-top: 0.5rem;
+    }
+
+    /* Spieltag-Akkordeon */
+    .accordion-button {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+
+    .accordion-body {
+        padding: 0.75rem;
+    }
+
+    /* Turniertipp Inputs */
+    input[list] {
+        font-size: 1rem;
+    }
+
+    /* Liste von Mannschaften scrollbar */
+    .list-group.list-group-flush {
+        max-height: 300px !important;
+    }
+
+    .list-group-item {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+
+    .list-group-item .btn-group,
+    .list-group-item div:last-child {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+}
+
+/* Sehr kleine Bildschirme - Stack alles */
+@media (max-width: 575.98px) {
+    /* Spiel-Inputs vertikal */
+    .row.g-2 .col-4,
+    .row.g-2 .col-1,
+    .row.g-2 .col-3 {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+
+    .row.g-2 .col-1 {
+        display: none; /* Verstecke den Doppelpunkt */
+    }
+
+    /* Button volle Breite */
+    .row.g-2 .col-3 .btn {
+        margin-top: 0.5rem;
+    }
+
+    /* Tabellen-Schrift noch kleiner */
+    .table {
+        font-size: 0.75rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.4rem !important;
+    }
+
+    /* Cards ohne Margins */
+    .col-md-6,
+    .col-md-4 {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    /* Heading mit Badge umbrechen */
+    h3 .badge {
+        display: block;
+        width: fit-content;
+        margin-top: 0.5rem;
+    }
+
+    /* Float-End Buttons */
+    h3 .float-end {
+        float: none !important;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+
+    /* Alert kompakter */
+    .alert {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+
+    .alert i {
+        font-size: 1rem;
+    }
+
+    /* Tab Navigation scrollen */
+    .nav-tabs {
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .nav-tabs .nav-link {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.8rem;
+    }
+
+    /* Statistik-Überschriften */
+    h6 {
+        font-size: 0.95rem;
+    }
+
+    /* Input Groups besser stapeln */
+    .input-group .form-control,
+    .input-group .btn {
+        border-radius: 0.375rem !important;
+    }
+}
+
+/* Spezial: Landscape auf kleinen Geräten */
+@media (max-width: 768px) and (orientation: landscape) {
+    /* Reduziere vertikale Abstände */
+    .card {
+        margin-bottom: 0.5rem;
+    }
+
+    .card-body {
+        padding: 0.75rem;
+    }
+
+    h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .nav-tabs {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .tab-content {
+        margin-top: 0.5rem !important;
+    }
+
+    /* Kompaktere Alerts */
+    .alert {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Print-Optimierung für Export */
+@media print {
+    .nav-tabs,
+    .btn,
+    .navbar-toggler,
+    .sidebar,
+    .top-row {
+        display: none !important;
+    }
+
+    .page {
+        display: block !important;
+    }
+
+    main {
+        padding: 0 !important;
+    }
+
+    .card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .table {
+        font-size: 0.8rem;
+    }
+}
