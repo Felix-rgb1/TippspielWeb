@@ -128,6 +128,21 @@
                     </div>
                 }
 
+                @if (benutzerListe == null || !benutzerListe.Any())
+                {
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> Keine Benutzer gefunden. 
+                        @if (benutzerListe == null)
+                        {
+                            <span>(Liste ist null)</span>
+                        }
+                        else
+                        {
+                            <span>(Liste ist leer - @benutzerListe.Count Einträge)</span>
+                        }
+                    </div>
+                }
+
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -772,6 +787,8 @@
 
     private void Aktualisieren(bool vollstaendig = true)
     {
+        Console.WriteLine($"Aktualisieren aufgerufen: vollstaendig={vollstaendig}, aktueller Tab={tab}");
+        
         // Bei vollständigem Update: Lade alle Basisdaten
         if (vollstaendig)
         {
@@ -779,6 +796,8 @@
             spielerListe = TippspielService.GetAlleSpieler();
             mannschaftsListe = TippspielService.GetAlleMannschaften();
             spieleListe = TippspielService.GetAlleSpiele();
+            
+            Console.WriteLine($"Vollständiges Laden: {benutzerListe?.Count ?? 0} Benutzer, {spielerListe?.Count ?? 0} Spieler, {mannschaftsListe?.Count ?? 0} Mannschaften, {spieleListe?.Count ?? 0} Spiele");
             
             // Initialisiere Eingabefelder für alle Spiele
             foreach (var spiel in spieleListe)
@@ -799,7 +818,10 @@
         
         // Bei selektivem Update: Lade nur die Daten für den aktuellen Tab
         if (tab == "benutzer")
+        {
             benutzerListe = TippspielService.GetAlleBenutzer();
+            Console.WriteLine($"Benutzer-Tab: {benutzerListe?.Count ?? 0} Benutzer geladen");
+        }
             
         if (tab == "tabelle" || tab == "export")
             spielerListe = TippspielService.GetAlleSpieler();
@@ -833,6 +855,13 @@
         tab = neuerTab;
         // Lade Daten für den neuen Tab
         Aktualisieren(vollstaendig: false);
+        
+        // Debug-Output
+        Console.WriteLine($"Tab gewechselt zu: {tab}");
+        if (tab == "benutzer")
+        {
+            Console.WriteLine($"Benutzer geladen: {benutzerListe?.Count ?? 0}");
+        }
     }
 
     private void SpielHinzufuegen()
