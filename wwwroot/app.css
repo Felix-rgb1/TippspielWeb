@@ -130,6 +130,61 @@ h1:focus {
     box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
+/* Toast-Container für Prahl-Nachrichten (fixed, nicht-blockierend) */
+.toast-container-prahlen {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none; /* Klicks durchlassen, Buttons nehmen pointer-events */
+}
+
+.toast-prahlen {
+    pointer-events: auto;
+    min-width: 260px;
+    max-width: 420px;
+    background: linear-gradient(90deg, #fff8e1, #fffbe6);
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    color: #2b2b2b;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.toast-prahlen .close-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+/* Kompakte Tabellen-Variante */
+.table-compact th, .table-compact td {
+    padding: 0.35rem 0.5rem !important;
+    vertical-align: middle;
+    font-size: 0.85rem;
+}
+.table-compact thead th {
+    font-size: 0.85rem;
+}
+
+/* Sticky Tabs/Header (bleibt am oberen Rand beim Scrollen) */
+.sticky-tabs {
+    position: sticky;
+    top: 0.5rem; /* etwas Abstand vom Seitenkopf */
+    background: rgba(255,255,255,0.95);
+    z-index: 1020;
+    padding-top: 0.5rem;
+    padding-bottom: 0.25rem;
+}
+
 .card.border-secondary {
     border-width: 2px !important;
     box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);

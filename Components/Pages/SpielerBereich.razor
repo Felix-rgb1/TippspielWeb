@@ -15,15 +15,25 @@
     </button>
 </h3>
 
-@if (!string.IsNullOrEmpty(prahlMeldung))
-{
-    <div class="alert alert-success alert-dismissible fade show prahlen-animation" role="alert">
-        <strong>💪 @prahlMeldung</strong>
-        <button type="button" class="btn-close" @onclick="@(() => prahlMeldung = "")"></button>
-    </div>
-}
+<div class="d-flex justify-content-end mb-2">
+    <button class="btn btn-sm btn-outline-secondary me-2" @onclick="ToggleCompactMode">
+        <i class="bi @(compactMode ? "bi-arrows-collapse" : "bi-arrows-expand")"></i>
+        <span class="ms-1">@(compactMode ? "Kompakt" : "Standard")</span>
+    </button>
+</div>
 
-<ul class="nav nav-tabs" role="tablist">
+<div class="toast-container-prahlen" aria-live="polite" aria-atomic="true">
+    @if (!string.IsNullOrEmpty(prahlMeldung))
+    {
+        <div class="toast-prahlen prahlen-animation" role="status">
+            <div class="fw-bold">@prahlenderSpieler</div>
+            <div class="ms-2 me-2 flex-grow-1">@prahlMeldung</div>
+            <button class="close-btn" @onclick="@(() => prahlMeldung = "")">✕</button>
+        </div>
+    }
+</div>
+
+<ul class="nav nav-tabs sticky-tabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link @(aktiverTab == "tipps" ? "active" : "")" @onclick="@(() => aktiverTab = "tipps")">Tipps abgeben</button>
     </li>
@@ -467,7 +477,7 @@
                                 @if (spiel.Tipps.Any())
                                 {
                                     <div class="table-responsive">
-                                        <table class="table table-sm table-bordered mb-0">
+                                        <table class="table table-sm table-bordered mb-0 @(compactMode ? "table-compact" : "")">
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>Spieler</th>
@@ -570,7 +580,7 @@
             }
         </div>
         
-        <table class="table table-striped">
+        <table class="table table-striped @(compactMode ? "table-compact" : "")">
             <thead class="table-warning">
                 <tr>
                     <th>Platz</th>
@@ -659,6 +669,7 @@
     private string prahlMeldung = "";
     private string prahlenderSpieler = ""; // Name des Spielers der prahlt
     private DateTime letztesPrahlEvent = DateTime.MinValue;
+    private bool compactMode = false;
     
     // Performance-Optimierungen: Caching
     private Dictionary<string, List<Spiel>> _spieltagCache = new();
@@ -843,6 +854,13 @@
     {
         _spieltagCache.Clear();
         _statistikCache.Clear();
+    }
+
+    private void ToggleCompactMode()
+    {
+        compactMode = !compactMode;
+        // kleine UI-Änderung sofort anzeigen
+        InvokeAsync(StateHasChanged);
     }
     
     private void Prahlen()
