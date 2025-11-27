@@ -2,18 +2,32 @@ using TippspielWeb.Models;
 
 namespace TippspielWeb.Services;
 
+public class PrahlEvent
+{
+    public string SpielerName { get; set; } = "";
+    public string Nachricht { get; set; } = "";
+    public DateTime Zeitstempel { get; set; } = DateTime.Now;
+}
+
 public class LiveUpdateService : IHostedService, IDisposable
 {
     private readonly IServiceProvider _serviceProvider;
     private Timer? _timer;
     private readonly ILogger<LiveUpdateService> _logger;
     private const int UPDATE_INTERVAL_MINUTES = 3; // Alle 3 Minuten aktualisieren
+    
+    // Event für Prahl-Aktionen
+    public event Action<PrahlEvent>? OnPrahlAktion;
+    private static LiveUpdateService? _instance;
 
     public LiveUpdateService(IServiceProvider serviceProvider, ILogger<LiveUpdateService> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _instance = this;
     }
+    
+    public static LiveUpdateService? Instance => _instance;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -106,5 +120,18 @@ public class LiveUpdateService : IHostedService, IDisposable
     public void Dispose()
     {
         _timer?.Dispose();
+    }
+    
+    public void TriggerPrahlAktion(string spielerName, string nachricht)
+    {
+        var prahlEvent = new PrahlEvent
+        {
+            SpielerName = spielerName,
+            Nachricht = nachricht,
+            Zeitstempel = DateTime.Now
+        };
+        
+        _logger.LogInformation("🎉 Prahl-Aktion ausgelöst: {Spieler} - {Nachricht}", spielerName, nachricht);
+        OnPrahlAktion?.Invoke(prahlEvent);
     }
 }

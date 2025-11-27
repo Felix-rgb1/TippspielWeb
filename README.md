@@ -14,6 +14,7 @@ Eine ASP.NET Core Blazor Server Anwendung für Fußball-Tippspiele mit Benutzerv
 - 👀 **Transparenz**: Gesperrte Spiele zeigen alle Tipps aller Benutzer
 - 📑 **Excel-Export**: Umfangreiche Excel-Exporte mit allen Daten und Turniertipps
 - 📱 **Responsive Design**: Bootstrap-basiertes Design für alle Geräte
+- 💪 **Prahlen-Feature**: Top 3 Spieler können prahlen - Animation wird allen Benutzern in Echtzeit angezeigt
 
 ## Technologie-Stack
 

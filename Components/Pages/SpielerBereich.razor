@@ -5,6 +5,8 @@
 @inject TippspielService TippspielService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject LiveUpdateService LiveUpdateService
+@implements IDisposable
 
 <h3 class="mb-4">
     Willkommen, @SpielerName! <span class="badge bg-success">Punkte: @aktuellerSpieler?.Punkte</span>
@@ -590,7 +592,7 @@
                         else if (platz == 3) cssClass = "table-danger";
                         else if (sortiert[i].Name == SpielerName) cssClass = "table-info";
 
-                        <tr class="@cssClass @(sortiert[i].Name == SpielerName && hatGeprahlt ? "prahlen-animation" : "")">
+                        <tr class="@cssClass @(sortiert[i].Name == prahlenderSpieler && hatGeprahlt ? "prahlen-animation" : "")">
                             <td>@platz</td>
                             <td>@sortiert[i].Name @(sortiert[i].Name == SpielerName ? "👤" : "")</td>
                             <td>@sortiert[i].Punkte</td>
@@ -655,6 +657,8 @@
     private List<Mannschaft> mannschaftsListe = new();
     private bool hatGeprahlt = false;
     private string prahlMeldung = "";
+    private string prahlenderSpieler = ""; // Name des Spielers der prahlt
+    private DateTime letztesPrahlEvent = DateTime.MinValue;
     
     // Performance-Optimierungen: Caching
     private Dictionary<string, List<Spiel>> _spieltagCache = new();
@@ -668,6 +672,9 @@
             Navigation.NavigateTo("/login");
             return;
         }
+        
+        // Registriere Event-Handler für Prahl-Aktionen
+        LiveUpdateService.OnPrahlAktion += HandlePrahlEvent;
         
         LadeDaten();
     }
@@ -856,10 +863,12 @@
         
         var random = new Random();
         prahlMeldung = prahlSprueche[random.Next(prahlSprueche.Length)];
-        hatGeprahlt = true;
         
         // Speichere Prahl-Aktion
         TippspielService.PrahlAktionSpeichern(SpielerName, prahlMeldung);
+        
+        // Triggere Event für alle Benutzer
+        LiveUpdateService.TriggerPrahlAktion(SpielerName, prahlMeldung);
         
         StateHasChanged();
         
@@ -869,5 +878,35 @@
             hatGeprahlt = false;
             InvokeAsync(StateHasChanged);
         });
+    }
+    
+    private void HandlePrahlEvent(PrahlEvent prahlEvent)
+    {
+        // Verhindere mehrfache Events innerhalb kurzer Zeit
+        if ((DateTime.Now - letztesPrahlEvent).TotalSeconds < 1)
+            return;
+            
+        letztesPrahlEvent = DateTime.Now;
+        prahlenderSpieler = prahlEvent.SpielerName;
+        prahlMeldung = prahlEvent.Nachricht;
+        hatGeprahlt = true;
+        
+        InvokeAsync(() =>
+        {
+            StateHasChanged();
+            
+            // Reset nach 5 Sekunden
+            Task.Delay(5000).ContinueWith(_ =>
+            {
+                hatGeprahlt = false;
+                prahlenderSpieler = "";
+                InvokeAsync(StateHasChanged);
+            });
+        });
+    }
+    
+    public void Dispose()
+    {
+        LiveUpdateService.OnPrahlAktion -= HandlePrahlEvent;
     }
 }
