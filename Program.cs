@@ -22,8 +22,9 @@ builder.Services.AddSingleton<AuthService>();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<OpenLigaDBService>();
 
-// Live-Update Hintergrund-Service
-builder.Services.AddHostedService<LiveUpdateService>();
+// Live-Update Service als Singleton UND als HostedService
+builder.Services.AddSingleton<LiveUpdateService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<LiveUpdateService>());
 
 var app = builder.Build();
 
