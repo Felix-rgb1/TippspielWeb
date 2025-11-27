@@ -11,28 +11,28 @@
 
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item">
-        <button class="nav-link @(tab == "mannschaften" ? "active" : "")" @onclick="@(() => tab = "mannschaften")">Mannschaften</button>
+        <button class="nav-link @(tab == "mannschaften" ? "active" : "")" @onclick="@(() => WechsleTab("mannschaften"))">Mannschaften</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "spiele" ? "active" : "")" @onclick="@(() => tab = "spiele")">Spiele</button>
+        <button class="nav-link @(tab == "spiele" ? "active" : "")" @onclick="@(() => WechsleTab("spiele"))">Spiele</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "bundesliga" ? "active" : "")" @onclick="@(() => tab = "bundesliga")">Bundesliga Import</button>
+        <button class="nav-link @(tab == "bundesliga" ? "active" : "")" @onclick="@(() => WechsleTab("bundesliga"))">Bundesliga Import</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "tipps" ? "active" : "")" @onclick="@(() => tab = "tipps")">Tipps</button>
+        <button class="nav-link @(tab == "tipps" ? "active" : "")" @onclick="@(() => WechsleTab("tipps"))">Tipps</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "turniertipps" ? "active" : "")" @onclick="@(() => tab = "turniertipps")">Turniertipps</button>
+        <button class="nav-link @(tab == "turniertipps" ? "active" : "")" @onclick="@(() => WechsleTab("turniertipps"))">Turniertipps</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "tabelle" ? "active" : "")" @onclick="@(() => tab = "tabelle")">Tabelle</button>
+        <button class="nav-link @(tab == "tabelle" ? "active" : "")" @onclick="@(() => WechsleTab("tabelle"))">Tabelle</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "export" ? "active" : "")" @onclick="@(() => tab = "export")">Export</button>
+        <button class="nav-link @(tab == "export" ? "active" : "")" @onclick="@(() => WechsleTab("export"))">Export</button>
     </li>
     <li class="nav-item">
-        <button class="nav-link @(tab == "benutzer" ? "active" : "")" @onclick="@(() => tab = "benutzer")">Benutzerverwaltung</button>
+        <button class="nav-link @(tab == "benutzer" ? "active" : "")" @onclick="@(() => WechsleTab("benutzer"))">Benutzerverwaltung</button>
     </li>
 </ul>
 
@@ -826,6 +826,13 @@
         
         if (tab == "mannschaften" || tab == "spiele")
             mannschaftsListe = TippspielService.GetAlleMannschaften();
+    }
+    
+    private void WechsleTab(string neuerTab)
+    {
+        tab = neuerTab;
+        // Lade Daten für den neuen Tab
+        Aktualisieren(vollstaendig: false);
     }
 
     private void SpielHinzufuegen()
