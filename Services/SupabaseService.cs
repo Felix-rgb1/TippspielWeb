@@ -103,8 +103,29 @@ public class SupabaseService
                 using var conn = GetConnection();
                 conn.Open();
                 
+                // Prüfe ob registriert_am Spalte existiert und füge sie hinzu falls nicht
+                try
+                {
+                    using var checkCmd = new NpgsqlCommand(
+                        "SELECT column_name FROM information_schema.columns WHERE table_name = 'benutzer' AND column_name = 'registriert_am'", conn);
+                    var result = checkCmd.ExecuteScalar();
+                    
+                    if (result == null)
+                    {
+                        Console.WriteLine("Spalte registriert_am fehlt - füge sie hinzu...");
+                        using var alterCmd = new NpgsqlCommand(
+                            "ALTER TABLE benutzer ADD COLUMN IF NOT EXISTS registriert_am TIMESTAMP DEFAULT NOW()", conn);
+                        alterCmd.ExecuteNonQuery();
+                        Console.WriteLine("Spalte registriert_am erfolgreich hinzugefügt");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warnung: Konnte Spalte registriert_am nicht prüfen/hinzufügen: {ex.Message}");
+                }
+                
                 using var cmd = new NpgsqlCommand(
-                    "INSERT INTO benutzer (benutzername, passwort_hash, ist_admin) VALUES (@user, @hash, @admin) ON CONFLICT (benutzername) DO UPDATE SET passwort_hash = @hash", conn);
+                    "INSERT INTO benutzer (benutzername, passwort_hash, ist_admin, registriert_am) VALUES (@user, @hash, @admin, NOW()) ON CONFLICT (benutzername) DO UPDATE SET passwort_hash = @hash", conn);
                 cmd.Parameters.AddWithValue("user", benutzername);
                 cmd.Parameters.AddWithValue("hash", passwortHash);
                 cmd.Parameters.AddWithValue("admin", istAdmin);
@@ -173,9 +194,21 @@ public class SupabaseService
                 conn.Open();
                 Console.WriteLine("GetAlleBenutzer: Verbindung geöffnet");
                 
-                // Verwende nur die Spalten, die tatsächlich existieren
-                using var cmd = new NpgsqlCommand(
-                    "SELECT benutzername, passwort_hash, ist_admin, weltmeister_tipp, vizemeister_tipp FROM benutzer", conn);
+                // Prüfe ob registriert_am existiert
+                bool hasRegistriertAm = false;
+                try
+                {
+                    using var checkCmd = new NpgsqlCommand(
+                        "SELECT column_name FROM information_schema.columns WHERE table_name = 'benutzer' AND column_name = 'registriert_am'", conn);
+                    hasRegistriertAm = checkCmd.ExecuteScalar() != null;
+                }
+                catch { }
+                
+                string query = hasRegistriertAm 
+                    ? "SELECT benutzername, passwort_hash, ist_admin, weltmeister_tipp, vizemeister_tipp, registriert_am FROM benutzer"
+                    : "SELECT benutzername, passwort_hash, ist_admin, weltmeister_tipp, vizemeister_tipp FROM benutzer";
+                    
+                using var cmd = new NpgsqlCommand(query, conn);
                 using var reader = cmd.ExecuteReader();
                 
                 int count = 0;
@@ -188,11 +221,11 @@ public class SupabaseService
                         IstAdmin = reader.GetBoolean(2),
                         WeltmeisterTipp = reader.IsDBNull(3) ? null : reader.GetString(3),
                         VizemeisterTipp = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        RegistriertAm = DateTime.Now // Fallback-Wert, da Spalte fehlt
+                        RegistriertAm = hasRegistriertAm && !reader.IsDBNull(5) ? reader.GetDateTime(5) : DateTime.Now
                     });
                     count++;
                 }
-                Console.WriteLine($"GetAlleBenutzer: {count} Benutzer aus Datenbank geladen");
+                Console.WriteLine($"GetAlleBenutzer: {count} Benutzer aus Datenbank geladen (registriert_am: {hasRegistriertAm})");
             }
             catch (Exception ex)
             {
