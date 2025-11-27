@@ -40,19 +40,18 @@
 <div class="tab-content mt-3">
     @if (aktiverTab == "statistik")
     {
-        @{
-            // Berechne Statistiken nur einmal und cache sie
-            var statistikKey = $"{SpielerName}_statistik";
-            
-            StatistikDaten stats;
-            
-            if (!_statistikCache.ContainsKey(statistikKey))
-            {
-                var meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
-                var beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
-                var richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
-                var exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
-                var differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
+        // Berechne Statistiken nur einmal und cache sie
+        var statistikKey = $"{SpielerName}_statistik";
+        
+        StatistikDaten stats;
+        
+        if (!_statistikCache.ContainsKey(statistikKey))
+        {
+            var meineTipps = spiele.Where(s => s.Tipps.ContainsKey(SpielerName)).ToList();
+            var beendeteSpiele = meineTipps.Where(s => s.IstBeendet()).ToList();
+            var richtigeTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) > 0).Count();
+            var exakteTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 3).Count();
+            var differenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 2).Count();
                 var tendenzTipps = beendeteSpiele.Where(s => BerechnePunkte(s.Tipps[SpielerName], s) == 1).Count();
                 var falscheTipps = beendeteSpiele.Count - richtigeTipps;
                 var tippQuote = beendeteSpiele.Count > 0 ? (richtigeTipps * 100.0 / beendeteSpiele.Count) : 0;
@@ -75,7 +74,6 @@
             {
                 stats = _statistikCache[statistikKey];
             }
-        }
         
         <div class="row">
             <div class="col-md-6 mb-3">
