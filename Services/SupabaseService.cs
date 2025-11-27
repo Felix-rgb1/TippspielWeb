@@ -168,29 +168,40 @@ public class SupabaseService
             var benutzer = new List<Benutzer>();
             try
             {
+                Console.WriteLine("GetAlleBenutzer: Starte Datenbankabfrage...");
                 using var conn = GetConnection();
                 conn.Open();
+                Console.WriteLine("GetAlleBenutzer: Verbindung geöffnet");
                 
+                // Verwende nur die Spalten, die tatsächlich existieren
                 using var cmd = new NpgsqlCommand(
-                    "SELECT benutzername, passwort_hash, registriert_am, ist_admin, weltmeister_tipp, vizemeister_tipp FROM benutzer", conn);
+                    "SELECT benutzername, passwort_hash, ist_admin, weltmeister_tipp, vizemeister_tipp FROM benutzer", conn);
                 using var reader = cmd.ExecuteReader();
                 
+                int count = 0;
                 while (reader.Read())
                 {
                     benutzer.Add(new Benutzer
                     {
                         Benutzername = reader.GetString(0),
                         PasswortHash = reader.GetString(1),
-                        RegistriertAm = reader.GetDateTime(2),
-                        IstAdmin = reader.GetBoolean(3),
-                        WeltmeisterTipp = reader.IsDBNull(4) ? null : reader.GetString(4),
-                        VizemeisterTipp = reader.IsDBNull(5) ? null : reader.GetString(5)
+                        IstAdmin = reader.GetBoolean(2),
+                        WeltmeisterTipp = reader.IsDBNull(3) ? null : reader.GetString(3),
+                        VizemeisterTipp = reader.IsDBNull(4) ? null : reader.GetString(4),
+                        RegistriertAm = DateTime.Now // Fallback-Wert, da Spalte fehlt
                     });
+                    count++;
                 }
+                Console.WriteLine($"GetAlleBenutzer: {count} Benutzer aus Datenbank geladen");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Fehler beim Laden der Benutzer: {ex.Message}");
+                Console.WriteLine($"FEHLER in GetAlleBenutzer: {ex.Message}");
+                Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
             }
             return benutzer;
         }
