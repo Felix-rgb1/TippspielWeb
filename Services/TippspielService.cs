@@ -882,6 +882,8 @@ public class TippspielService
             }
 
             // Prüfe ob bereits in diesem Spieltag geprahlt wurde
+            // TEMPORÄR DEAKTIVIERT - Spieler können mehrfach pro Spieltag prahlen
+            /*
             var hatBereitsGeprahlt = prahlAktionen.Any(p => 
                 p.SpielerName == spielerName && 
                 p.Spieltag == aktuellerSpieltag);
@@ -891,6 +893,7 @@ public class TippspielService
                 grund = $"Du hast bereits im Spieltag {aktuellerSpieltag} geprahlt!";
                 return false;
             }
+            */
 
             grund = string.Empty;
             return true;
