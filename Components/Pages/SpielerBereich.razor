@@ -15,6 +15,14 @@
     </button>
 </h3>
 
+@if (!string.IsNullOrEmpty(prahlMeldung))
+{
+    <div class="alert alert-success alert-dismissible fade show prahlen-animation" role="alert">
+        <strong>💪 @prahlMeldung</strong>
+        <button type="button" class="btn-close" @onclick="@(() => prahlMeldung = "")"></button>
+    </div>
+}
+
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link @(aktiverTab == "tipps" ? "active" : "")" @onclick="@(() => aktiverTab = "tipps")">Tipps abgeben</button>
@@ -561,14 +569,6 @@
                 </div>
             }
         </div>
-        
-        @if (!string.IsNullOrEmpty(prahlMeldung))
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <strong>💪 @prahlMeldung</strong>
-                <button type="button" class="btn-close" @onclick="@(() => prahlMeldung = "")"></button>
-            </div>
-        }
         
         <table class="table table-striped">
             <thead class="table-warning">
