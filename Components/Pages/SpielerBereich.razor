@@ -208,7 +208,11 @@
     else if (aktiverTab == "tipps")
     {
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">Tipps abgeben</h5>
+            <div class="d-flex align-items-center">
+                <h5 class="mb-0 me-3">Tipps abgeben</h5>
+                <input class="form-control form-control-sm me-2" style="width: 260px;" placeholder="Suche Teams oder Spieltag..." @bind="searchQuery" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="() => searchQuery = string.Empty">Zurücksetzen</button>
+            </div>
             <div>
                 <label class="me-2">Filter:</label>
                 <select class="form-select d-inline-block" style="width: auto;" @bind="gewaehlterSpieltag">
@@ -220,10 +224,14 @@
                 </select>
             </div>
         </div>
-        @foreach (var gruppe in GetGefilterteSpiele().GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
+        @foreach (var gruppe in ApplySearchFilter(GetGefilterteSpiele()).GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
         {
-            <div class="card mb-3">
-                <div class="card-header bg-primary text-white fw-bold">SPIELTAG @gruppe.Key</div>
+            var collapsed = _collapsedSpieltag.ContainsKey(gruppe.Key);
+            <div class="card mb-3 spieltag-card @(collapsed ? "collapsed" : "")">
+                <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center" @onclick="() => ToggleSpieltag(gruppe.Key)">
+                    <div>SPIELTAG @gruppe.Key</div>
+                    <div><i class="bi bi-chevron-down spieltag-toggle-icon"></i></div>
+                </div>
                 <div class="card-body">
                     @foreach (var spiel in gruppe.OrderBy(s => s.SpielDatum))
                     {
@@ -675,6 +683,8 @@
     private Dictionary<string, List<Spiel>> _spieltagCache = new();
     private Dictionary<string, StatistikDaten> _statistikCache = new();
     private bool _isDatenGeladen = false;
+    // Collapsed state per Spieltag
+    private Dictionary<string, bool> _collapsedSpieltag = new();
 
     protected override void OnInitialized()
     {
@@ -856,11 +866,37 @@
         _statistikCache.Clear();
     }
 
+    private IEnumerable<Spiel> ApplySearchFilter(IEnumerable<Spiel> source)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return source;
+        var q = searchQuery.Trim().ToLowerInvariant();
+        return source.Where(s => s.Heimmannschaft.ToLowerInvariant().Contains(q) || s.Gastmannschaft.ToLowerInvariant().Contains(q) || s.Spieltag.ToLowerInvariant().Contains(q));
+    }
+
     private void ToggleCompactMode()
     {
         compactMode = !compactMode;
         // kleine UI-Änderung sofort anzeigen
         InvokeAsync(StateHasChanged);
+    }
+
+    private string searchQuery = "";
+
+    private void ToggleSpieltag(string spieltag)
+    {
+        if (_collapsedSpieltag.ContainsKey(spieltag))
+            _collapsedSpieltag.Remove(spieltag);
+        else
+            _collapsedSpieltag[spieltag] = true;
+
+        // persistieren
+        try
+        {
+            var keys = _collapsedSpieltag.Keys.ToList();
+            var json = System.Text.Json.JsonSerializer.Serialize(keys);
+            JS.InvokeVoidAsync("localStorage.setItem", "tippspiel_collapsed_groups", json);
+        }
+        catch { }
     }
     
     private void Prahlen()
@@ -927,4 +963,36 @@
     {
         LiveUpdateService.OnPrahlAktion -= HandlePrahlEvent;
     }
+
+        protected override async Task OnInitializedAsync()
+        {
+            // Versuche compactMode aus localStorage zu lesen
+            try
+            {
+                var val = await JS.InvokeAsync<string>("localStorage.getItem", "tippspiel_compact_mode");
+                if (!string.IsNullOrEmpty(val) && bool.TryParse(val, out bool parsed))
+                {
+                    compactMode = parsed;
+                }
+            }
+            catch { /* ignore */ }
+
+            // Lade bereits vorhandene kollapsen Zustände (optional)
+            try
+            {
+                var collapsedJson = await JS.InvokeAsync<string>("localStorage.getItem", "tippspiel_collapsed_groups");
+                if (!string.IsNullOrEmpty(collapsedJson))
+                {
+                    var list = System.Text.Json.JsonSerializer.Deserialize<List<string>>(collapsedJson);
+                    if (list != null)
+                    {
+                        foreach (var key in list)
+                            _collapsedSpieltag[key] = true;
+                    }
+                }
+            }
+            catch { }
+
+            await Task.CompletedTask;
+        }
 }

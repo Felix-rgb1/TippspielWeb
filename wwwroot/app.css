@@ -185,6 +185,21 @@ h1:focus {
     padding-bottom: 0.25rem;
 }
 
+/* Collapsible Spieltag Card */
+.spieltag-card .card-header {
+    cursor: pointer;
+    user-select: none;
+}
+.spieltag-card.collapsed .card-body {
+    display: none;
+}
+.spieltag-toggle-icon {
+    transition: transform 0.2s ease;
+}
+.spieltag-card.collapsed .spieltag-toggle-icon {
+    transform: rotate(-90deg);
+}
+
 .card.border-secondary {
     border-width: 2px !important;
     box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
