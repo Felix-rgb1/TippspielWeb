@@ -200,6 +200,54 @@ h1:focus {
     transform: rotate(-90deg);
 }
 
+.spieltag-header-sticky {
+    position: sticky;
+    top: 3.75rem;
+    z-index: 1010;
+}
+
+.badge-status-open {
+    background: #198754;
+    color: #fff;
+}
+
+.badge-status-locked {
+    background: #6c757d;
+    color: #fff;
+}
+
+.trend-badge-hot {
+    background: linear-gradient(90deg, #ffb347, #ff9100);
+    color: #2b1b00;
+}
+
+.trend-badge-warm {
+    background: linear-gradient(90deg, #ffd26f, #ffa000);
+    color: #2b1b00;
+}
+
+.trend-badge-neutral {
+    background: #e7f5ff;
+    color: #0d3b66;
+}
+
+.trend-badge-cool {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.trend-badge-cold {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.platz-delta {
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
 .card.border-secondary {
     border-width: 2px !important;
     box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
