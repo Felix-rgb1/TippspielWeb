@@ -285,15 +285,13 @@
                                 @if (lokalSpiel.IstBeendet())
                                 {
                                     <div class="tipp-card-body ended">
-                                        <div class="text-center">
-                                            <div class="score-display">@lokalSpiel.HeimTore : @lokalSpiel.GastTore</div>
-                                            @if (lokalSpiel.Tipps.ContainsKey(SpielerName))
-                                            {
-                                                var punkte = BerechnePunkte(lokalSpiel.Tipps[SpielerName], lokalSpiel);
-                                                <small class="text-muted d-block">Dein Tipp: @lokalSpiel.Tipps[SpielerName].HeimTore:@lokalSpiel.Tipps[SpielerName].GastTore</small>
-                                                <span class="badge @(punkte switch { 3 => "bg-success", 2 => "bg-info", 1 => "bg-warning", _ => "bg-danger" })">@punkte Pkt</span>
-                                            }
-                                        </div>
+                                        <div class="score-display">@lokalSpiel.HeimTore : @lokalSpiel.GastTore</div>
+                                        @if (lokalSpiel.Tipps.ContainsKey(SpielerName))
+                                        {
+                                            var punkte = BerechnePunkte(lokalSpiel.Tipps[SpielerName], lokalSpiel);
+                                            <small class="text-muted d-block mb-2">Dein Tipp: @lokalSpiel.Tipps[SpielerName].HeimTore:@lokalSpiel.Tipps[SpielerName].GastTore</small>
+                                            <span class="badge @(punkte switch { 3 => "bg-success", 2 => "bg-info", 1 => "bg-warning", _ => "bg-danger" })">@punkte Pkt</span>
+                                        }
                                     </div>
                                 }
                                 else if (!istOffen)

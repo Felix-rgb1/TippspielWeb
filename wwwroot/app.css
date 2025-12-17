@@ -835,6 +835,16 @@ h1:focus {
 .tipp-card-body.ended {
     text-align: center;
     background: white;
+    padding: 0.85rem !important;
+}
+
+.tipp-card-body.ended .score-display {
+    margin: 0 0 0.35rem 0;
+}
+
+.tipp-card-body.ended small {
+    font-size: 0.8rem !important;
+    margin-bottom: 0.4rem !important;
 }
 
 /* Input Felder für Tipps */
