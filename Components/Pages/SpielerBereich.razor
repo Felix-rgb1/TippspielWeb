@@ -494,12 +494,12 @@
             </div>
         </div>
         @{
-            var gesperrteSpiele = GetGefilterteSpiele()
-                .Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer))
-                .OrderBy(s => s.SpielDatum);
+            var gesperrteListe = WendeLiveFilter(
+                    GetGefilterteSpiele()
+                        .Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer))
+                        .OrderBy(s => s.SpielDatum))
+                .ToList();
 
-            gesperrteSpiele = WendeLiveFilter(gesperrteSpiele);
-            var gesperrteListe = gesperrteSpiele.ToList();
             var gesperrteBegrenzt = gesperrteListe.Take(alleTippsLimit).ToList();
         }
 
