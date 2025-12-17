@@ -403,10 +403,12 @@
                 <div class="list-group list-group-flush">
                     @foreach (var spiel in gruppe.OrderBy(s => s.SpielDatum))
                     {
-                        var tipp = spiel.Tipps[SpielerName];
-                        var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
-                        var offen = !spiel.IstBeendet() && TippspielService.IstTippMoeglich(spiel.SpielNummer);
-                        
+                        @{ 
+                            var tipp = spiel.Tipps[SpielerName];
+                            var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
+                            var offen = !spiel.IstBeendet() && TippspielService.IstTippMoeglich(spiel.SpielNummer);
+                        }
+
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <strong>@spiel.Heimmannschaft vs @spiel.Gastmannschaft</strong>
@@ -568,10 +570,12 @@
                                             <tbody>
                                                 @foreach (var tippEntry in spiel.Tipps.Where(t => string.IsNullOrEmpty(gewaehlterBenutzer) || t.Key == gewaehlterBenutzer).OrderBy(t => t.Key))
                                                 {
-                                                    var tipp = tippEntry.Value;
-                                                    var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
-                                                    var istEigenerTipp = tippEntry.Key == SpielerName;
-                                                    
+                                                    @{ 
+                                                        var tipp = tippEntry.Value;
+                                                        var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
+                                                        var istEigenerTipp = tippEntry.Key == SpielerName;
+                                                    }
+
                                                     <tr class="@(istEigenerTipp ? "table-info" : "")">
                                                         <td>
                                                             @tippEntry.Key
@@ -681,8 +685,10 @@
                 <tbody>
                     @foreach (var r in ranking)
                     {
-                        var rowClass = r.Platz switch { 1 => "table-warning", 2 => "table-secondary", 3 => "table-danger", _ => "" };
-                        if (r.IstAktuellerSpieler) rowClass = "table-info";
+                        @{ 
+                            var rowClass = r.Platz switch { 1 => "table-warning", 2 => "table-secondary", 3 => "table-danger", _ => "" };
+                            if (r.IstAktuellerSpieler) rowClass = "table-info";
+                        }
 
                         <tr class="@rowClass @(r.Name == prahlenderSpieler && hatGeprahlt ? "prahlen-animation" : "")">
                             <td>
