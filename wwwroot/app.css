@@ -833,18 +833,47 @@ h1:focus {
 }
 
 .tipp-card-body.ended {
-    text-align: center;
+    text-align: left;
     background: white;
     padding: 0.85rem !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ended-content {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.ended-info {
+    flex: 1;
+    text-align: left;
+}
+
+.ended-info small {
+    font-size: 0.75rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+.ended-info strong {
+    font-size: 1.1rem;
+    display: block;
+    color: #333;
+}
+
+.ended-score {
+    flex-shrink: 0;
+    text-align: right;
 }
 
 .tipp-card-body.ended .score-display {
-    margin: 0 0 0.35rem 0;
-}
-
-.tipp-card-body.ended small {
-    font-size: 0.8rem !important;
-    margin-bottom: 0.4rem !important;
+    margin: 0 !important;
+    font-size: 1.8rem !important;
+    color: #0066cc;
 }
 
 /* Input Felder für Tipps */

@@ -285,13 +285,26 @@
                                 @if (lokalSpiel.IstBeendet())
                                 {
                                     <div class="tipp-card-body ended">
-                                        <div class="score-display">@lokalSpiel.HeimTore : @lokalSpiel.GastTore</div>
-                                        @if (lokalSpiel.Tipps.ContainsKey(SpielerName))
-                                        {
-                                            var punkte = BerechnePunkte(lokalSpiel.Tipps[SpielerName], lokalSpiel);
-                                            <small class="text-muted d-block mb-2">Dein Tipp: @lokalSpiel.Tipps[SpielerName].HeimTore:@lokalSpiel.Tipps[SpielerName].GastTore</small>
-                                            <span class="badge @(punkte switch { 3 => "bg-success", 2 => "bg-info", 1 => "bg-warning", _ => "bg-danger" })">@punkte Pkt</span>
-                                        }
+                                        <div class="ended-content">
+                                            <div class="ended-info">
+                                                @if (lokalSpiel.Tipps.ContainsKey(SpielerName))
+                                                {
+                                                    var punkte = BerechnePunkte(lokalSpiel.Tipps[SpielerName], lokalSpiel);
+                                                    <small class="text-muted d-block mb-1">Dein Tipp:</small>
+                                                    <strong>@lokalSpiel.Tipps[SpielerName].HeimTore:@lokalSpiel.Tipps[SpielerName].GastTore</strong>
+                                                    <div class="mt-1">
+                                                        <span class="badge @(punkte switch { 3 => "bg-success", 2 => "bg-info", 1 => "bg-warning", _ => "bg-danger" })">@punkte Pkt</span>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted">Kein Tipp</small>
+                                                }
+                                            </div>
+                                            <div class="ended-score">
+                                                <div class="score-display">@lokalSpiel.HeimTore : @lokalSpiel.GastTore</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 }
                                 else if (!istOffen)
