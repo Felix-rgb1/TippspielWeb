@@ -388,27 +388,13 @@
             <small class="text-muted ms-2">Lazy-Load: @meineTippsLimit Spiele</small>
         </div>
 
-        @{
-            var meineSpiele = WendeLiveFilter(GetGefilterteSpiele()
-                .Where(s => s.Tipps.ContainsKey(SpielerName))
-                .OrderBy(s => s.SpielDatum))
-                .Take(meineTippsLimit)
-                .ToList();
-        }
-
-        @foreach (var gruppe in meineSpiele.GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
+        @foreach (var gruppe in GetMeineSpiele().GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
         {
             <div class="card mb-3">
                 <div class="card-header bg-info text-white fw-bold spieltag-header-sticky">SPIELTAG @gruppe.Key</div>
                 <div class="list-group list-group-flush">
                     @foreach (var spiel in gruppe.OrderBy(s => s.SpielDatum))
                     {
-                        @{ 
-                            var tipp = spiel.Tipps[SpielerName];
-                            var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
-                            var offen = !spiel.IstBeendet() && TippspielService.IstTippMoeglich(spiel.SpielNummer);
-                        }
-
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
                                 <strong>@spiel.Heimmannschaft vs @spiel.Gastmannschaft</strong>
@@ -418,13 +404,14 @@
                                         <span class="badge bg-danger blink-animation me-2">🔴 LIVE</span>
                                     }
                                     <span class="text-muted d-block">@spiel.SpielDatum.ToString("dd.MM.yyyy HH:mm")</span>
-                                    <span class="badge @(offen ? "badge-status-open" : "badge-status-locked")">@(offen ? "Tipps offen" : (spiel.IstBeendet() ? "Beendet" : "Gesperrt"))</span>
+                                    <span class="badge @(IstOffen(spiel) ? "badge-status-open" : "badge-status-locked")">@(IstOffen(spiel) ? "Tipps offen" : (spiel.IstBeendet() ? "Beendet" : "Gesperrt"))</span>
                                 </div>
                             </div>
                             <div class="mt-2 d-flex flex-wrap gap-2">
-                                <span class="badge bg-primary">Mein Tipp: @tipp.HeimTore:@tipp.GastTore</span>
+                                <span class="badge bg-primary">Mein Tipp: @spiel.Tipps[SpielerName].HeimTore:@spiel.Tipps[SpielerName].GastTore</span>
                                 @if (spiel.IstBeendet())
                                 {
+                                    var punkte = BerechnePunkte(spiel.Tipps[SpielerName], spiel);
                                     <span class="badge bg-secondary">Ergebnis: @spiel.HeimTore:@spiel.GastTore</span>
                                     @if (punkte == 3)
                                     {
@@ -454,10 +441,10 @@
             </div>
         }
 
-        @if (GetGefilterteSpiele().Where(s => s.Tipps.ContainsKey(SpielerName)).Count() > meineSpiele.Count)
+        @if (GetMeineGefiltertCount() > GetMeineAnzahl())
         {
             <div class="d-grid">
-                <button class="btn btn-outline-secondary" @onclick="() => MehrEigeneLaden()">Mehr laden (@meineSpiele.Count / @GetGefilterteSpiele().Where(s => s.Tipps.ContainsKey(SpielerName)).Count())</button>
+                <button class="btn btn-outline-secondary" @onclick="() => MehrEigeneLaden()">Mehr laden (@GetMeineAnzahl() / @GetMeineGefiltertCount())</button>
             </div>
         }
     }
@@ -495,17 +482,7 @@
                 <small class="text-muted">Lazy-Load aktiv: @alleTippsLimit Spiele</small>
             </div>
         </div>
-        @{
-            var gesperrteListe = WendeLiveFilter(
-                    GetGefilterteSpiele()
-                        .Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer))
-                        .OrderBy(s => s.SpielDatum))
-                .ToList();
-
-            var gesperrteBegrenzt = gesperrteListe.Take(alleTippsLimit).ToList();
-        }
-
-        @if (!gesperrteListe.Any())
+        @if (!GetGesperrteListe().Any())
         {
             <div class="alert alert-info">
                 <i class="bi bi-info-circle"></i> Aktuell sind keine gesperrten Spiele sichtbar. Tipps werden angezeigt, sobald ein Spiel in weniger als 1 Stunde beginnt.
@@ -513,7 +490,7 @@
         }
         else
         {
-            @foreach (var gruppe in gesperrteBegrenzt.GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
+            @foreach (var gruppe in GetGesperrteBegrenzt().GroupBy(s => s.Spieltag).OrderBy(g => g.Key))
             {
                 <div class="card mb-3">
                     <div class="card-header bg-dark text-white fw-bold spieltag-header-sticky">
@@ -570,11 +547,8 @@
                                             <tbody>
                                                 @foreach (var tippEntry in spiel.Tipps.Where(t => string.IsNullOrEmpty(gewaehlterBenutzer) || t.Key == gewaehlterBenutzer).OrderBy(t => t.Key))
                                                 {
-                                                    @{ 
-                                                        var tipp = tippEntry.Value;
-                                                        var punkte = spiel.IstBeendet() ? BerechnePunkte(tipp, spiel) : -1;
-                                                        var istEigenerTipp = tippEntry.Key == SpielerName;
-                                                    }
+                                                    var istEigenerTipp = tippEntry.Key == SpielerName;
+                                                    var punkte = spiel.IstBeendet() ? BerechnePunkte(tippEntry.Value, spiel) : -1;
 
                                                     <tr class="@(istEigenerTipp ? "table-info" : "")">
                                                         <td>
@@ -585,7 +559,7 @@
                                                             }
                                                         </td>
                                                         <td class="text-center">
-                                                            <strong>@tipp.HeimTore : @tipp.GastTore</strong>
+                                                            <strong>@tippEntry.Value.HeimTore : @tippEntry.Value.GastTore</strong>
                                                         </td>
                                                         @if (spiel.IstBeendet())
                                                         {
@@ -624,11 +598,11 @@
                 </div>
             }
 
-            @if (gesperrteListe.Count > gesperrteBegrenzt.Count)
+            @if (GetGesperrteListe().Count > GetGesperrteBegrenzt().Count)
             {
                 <div class="d-grid">
                     <button class="btn btn-outline-secondary" @onclick="() => MehrGesperrteLaden()">
-                        Mehr laden (@gesperrteBegrenzt.Count / @gesperrteListe.Count)
+                        Mehr laden (@GetGesperrteBegrenzt().Count / @GetGesperrteListe().Count)
                     </button>
                 </div>
             }
@@ -638,11 +612,6 @@
     {
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <h5 class="mb-0">Aktuelle Tabelle</h5>
-            @{
-                var ranking = BerechneRanking();
-                var meinEintrag = ranking.FirstOrDefault(r => r.Name == SpielerName);
-                var meinPlatz = meinEintrag?.Platz ?? ranking.Count + 1;
-            }
             
             <!-- Prahlen-Button für Top 3 Spieler mit Cooldown-Hinweis -->
             @if (meinPlatz <= 3 && aktuellerSpieler?.Punkte >= 0)
@@ -685,21 +654,14 @@
                 <tbody>
                     @foreach (var r in ranking)
                     {
-                        @{ 
-                            var rowClass = r.Platz switch { 1 => "table-warning", 2 => "table-secondary", 3 => "table-danger", _ => "" };
-                            if (r.IstAktuellerSpieler) rowClass = "table-info";
-                        }
-
-                        <tr class="@rowClass @(r.Name == prahlenderSpieler && hatGeprahlt ? "prahlen-animation" : "")">
+                        <tr class="@GetRowClass(r) @(r.Name == prahlenderSpieler && hatGeprahlt ? "prahlen-animation" : "")">
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <strong>@r.Platz</strong>
                                     @if (r.PlatzDelta != 0)
                                     {
-                                        var icon = r.PlatzDelta < 0 ? "bi-arrow-up-short" : "bi-arrow-down-short";
-                                        var deltaClass = r.PlatzDelta < 0 ? "text-success" : "text-danger";
-                                        <span class="@deltaClass platz-delta">
-                                            <i class="bi @icon"></i>@Math.Abs(r.PlatzDelta)
+                                        <span class="@GetDeltaClass(r.PlatzDelta) platz-delta">
+                                            <i class="bi @GetDeltaIcon(r.PlatzDelta)"></i>@Math.Abs(r.PlatzDelta)
                                         </span>
                                     }
                                 </div>
@@ -787,6 +749,8 @@
     private bool filterNurLive = false;
     private int alleTippsLimit = 30;
     private int meineTippsLimit = 30;
+    private List<SpielerRanking> ranking = new();
+    private int meinPlatz = 0;
     
     // Performance-Optimierungen: Caching
     private Dictionary<string, List<Spiel>> _spieltagCache = new();
@@ -844,6 +808,8 @@
                 tempTipps[spiel.SpielNummer] = (0, 0);
             }
         }
+
+        AktualisiereRanking();
     }
 
     private int GetTippHeim(Spiel spiel)
@@ -891,6 +857,7 @@
                 spiele = TippspielService.GetAlleSpiele();
                 alleSpieler = TippspielService.GetAlleSpieler();
                 aktuellerSpieler = alleSpieler.FirstOrDefault(s => s.Name == SpielerName);
+                AktualisiereRanking();
                 
                 // Lösche Cache nach Tipp-Abgabe
                 CacheLöschen();
@@ -1095,10 +1062,54 @@
         return "trend-badge-cold";
     }
 
+    private void AktualisiereRanking()
+    {
+        ranking = BerechneRanking();
+        var meinEintrag = ranking.FirstOrDefault(r => r.Name == SpielerName);
+        meinPlatz = meinEintrag?.Platz ?? ranking.Count + 1;
+    }
+
     private IEnumerable<Spiel> WendeLiveFilter(IEnumerable<Spiel> source)
     {
         return filterNurLive ? source.Where(s => s.IstLive()) : source;
     }
+
+    private List<Spiel> GetMeineSpiele()
+    {
+        return WendeLiveFilter(GetGefilterteSpiele()
+            .Where(s => s.Tipps.ContainsKey(SpielerName))
+            .OrderBy(s => s.SpielDatum))
+            .Take(meineTippsLimit)
+            .ToList();
+    }
+
+    private List<Spiel> GetGesperrteListe()
+    {
+        return WendeLiveFilter(GetGefilterteSpiele()
+            .Where(s => !TippspielService.IstTippMoeglich(s.SpielNummer))
+            .OrderBy(s => s.SpielDatum))
+            .ToList();
+    }
+
+    private List<Spiel> GetGesperrteBegrenzt()
+    {
+        return GetGesperrteListe().Take(alleTippsLimit).ToList();
+    }
+
+    private int GetMeineGefiltertCount() => GetGefilterteSpiele().Count(s => s.Tipps.ContainsKey(SpielerName));
+    private int GetMeineAnzahl() => GetMeineSpiele().Count;
+
+    private bool IstOffen(Spiel spiel) => !spiel.IstBeendet() && TippspielService.IstTippMoeglich(spiel.SpielNummer);
+
+    private string GetRowClass(SpielerRanking r)
+    {
+        var rowClass = r.Platz switch { 1 => "table-warning", 2 => "table-secondary", 3 => "table-danger", _ => "" };
+        if (r.IstAktuellerSpieler) rowClass = "table-info";
+        return rowClass;
+    }
+
+    private string GetDeltaIcon(int delta) => delta < 0 ? "bi-arrow-up-short" : "bi-arrow-down-short";
+    private string GetDeltaClass(int delta) => delta < 0 ? "text-success" : "text-danger";
 
     private void SpieltagTippsSpeichern(string spieltag)
     {
@@ -1122,6 +1133,7 @@
             spiele = TippspielService.GetAlleSpiele();
             alleSpieler = TippspielService.GetAlleSpieler();
             aktuellerSpieler = alleSpieler.FirstOrDefault(s => s.Name == SpielerName);
+            AktualisiereRanking();
             CacheLöschen();
             StateHasChanged();
         }
