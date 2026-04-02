@@ -7,3 +7,5 @@ services:
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+      - key: ConnectionStrings__Supabase
+        sync: false
