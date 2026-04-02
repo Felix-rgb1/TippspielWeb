@@ -273,6 +273,29 @@ namespace TippspielWeb.Services
             );
         }
 
+        public async Task<int> AddSpielAndGetId(Spiel spiel)
+        {
+            if (!_isAvailable)
+                throw new InvalidOperationException("Supabase nicht verfügbar.");
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync();
+            await using var cmd = new NpgsqlCommand(
+                "INSERT INTO Spiele (Spieltag, Heimmannschaft, Gastmannschaft, SpielDatum, HeimTore, GastTore) VALUES (@spieltag, @homeTeam, @awayTeam, @gameDate, @homeGoals, @awayGoals) RETURNING SpielId",
+                conn);
+            cmd.Parameters.AddRange(new NpgsqlParameter[]
+            {
+                new NpgsqlParameter("spieltag", spiel.Spieltag),
+                new NpgsqlParameter("homeTeam", spiel.Heimmannschaft),
+                new NpgsqlParameter("awayTeam", spiel.Gastmannschaft),
+                new NpgsqlParameter("gameDate", spiel.SpielDatum.ToUniversalTime()),
+                new NpgsqlParameter("homeGoals", spiel.HeimTore ?? (object)DBNull.Value),
+                new NpgsqlParameter("awayGoals", spiel.GastTore ?? (object)DBNull.Value),
+            });
+            var result = await cmd.ExecuteScalarAsync();
+            return Convert.ToInt32(result);
+        }
+
         public async Task UpdateSpiel(Spiel spiel)
         {
             await ExecuteNonQueryAsync(

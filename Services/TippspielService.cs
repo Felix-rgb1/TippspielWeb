@@ -41,6 +41,103 @@ namespace TippspielWeb.Services
         private async Task InitializeServiceAsync()
         {
             await LadeAlleDatenAusSupabase();
+            await MigrateFromJsonIfEmpty();
+            await LadeAlleDatenAusSupabase();
+        }
+
+        private async Task MigrateFromJsonIfEmpty()
+        {
+            if (_spieleCache.Count > 0) return;
+
+            var jsonPath = Path.Combine(AppContext.BaseDirectory, "tippspiel_daten.json");
+            if (!File.Exists(jsonPath)) return;
+
+            _logger.LogInformation("Starte JSON-Migration nach Supabase...");
+            try
+            {
+                var jsonContent = await File.ReadAllTextAsync(jsonPath);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var jsonData = JsonSerializer.Deserialize<JsonMigrationData>(jsonContent, options);
+                if (jsonData == null) return;
+
+                foreach (var benutzer in jsonData.Benutzer)
+                {
+                    try { await _supabaseService.AddBenutzer(benutzer); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Benutzer {Name} bereits vorhanden oder Fehler.", benutzer.Benutzername); }
+                }
+
+                foreach (var mannschaft in jsonData.Mannschaften)
+                {
+                    try { await _supabaseService.AddMannschaft(mannschaft); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Mannschaft {Name} Fehler.", mannschaft.Name); }
+                }
+
+                foreach (var spielJson in jsonData.Spiele)
+                {
+                    try
+                    {
+                        var spiel = new Spiel
+                        {
+                            Spieltag = spielJson.Spieltag,
+                            Heimmannschaft = spielJson.Heimmannschaft,
+                            Gastmannschaft = spielJson.Gastmannschaft,
+                            SpielDatum = spielJson.SpielDatum,
+                            HeimTore = spielJson.HeimTore,
+                            GastTore = spielJson.GastTore
+                        };
+                        int neueSpielId = await _supabaseService.AddSpielAndGetId(spiel);
+
+                        if (spielJson.Tipps != null)
+                        {
+                            foreach (var (benutzername, tippJson) in spielJson.Tipps)
+                            {
+                                try
+                                {
+                                    await _supabaseService.AddOrUpdateTipp(new Tipp
+                                    {
+                                        Benutzername = benutzername,
+                                        SpielId = neueSpielId,
+                                        HeimTore = tippJson.HeimTore,
+                                        GastTore = tippJson.GastTore
+                                    });
+                                }
+                                catch (Exception ex) { _logger.LogWarning(ex, "Tipp-Migration Fehler für {User}.", benutzername); }
+                            }
+                        }
+                    }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Spiel-Migration Fehler: {Home} vs {Away}.", spielJson.Heimmannschaft, spielJson.Gastmannschaft); }
+                }
+
+                _logger.LogInformation("JSON-Migration abgeschlossen.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fehler während JSON-Migration.");
+            }
+        }
+
+        private class JsonMigrationData
+        {
+            public List<Benutzer> Benutzer { get; set; } = new();
+            public List<Mannschaft> Mannschaften { get; set; } = new();
+            public List<JsonSpielMigration> Spiele { get; set; } = new();
+        }
+
+        private class JsonSpielMigration
+        {
+            public string Spieltag { get; set; } = string.Empty;
+            public string Heimmannschaft { get; set; } = string.Empty;
+            public string Gastmannschaft { get; set; } = string.Empty;
+            public DateTime SpielDatum { get; set; }
+            public int? HeimTore { get; set; }
+            public int? GastTore { get; set; }
+            public Dictionary<string, JsonTippMigration>? Tipps { get; set; }
+        }
+
+        private class JsonTippMigration
+        {
+            public int HeimTore { get; set; }
+            public int GastTore { get; set; }
         }
 
         private async Task LadeAlleDatenAusSupabase()
