@@ -7,19 +7,63 @@ namespace TippspielWeb.Services
 {
     public class SupabaseService
     {
-        private readonly string _connectionString;
+        private string _connectionString;
         private readonly ILogger<SupabaseService> _logger;
+        private volatile bool _isAvailable = true;
 
         public SupabaseService(IConfiguration configuration, ILogger<SupabaseService> logger)
         {
-            _connectionString = configuration.GetConnectionString("Supabase") ??
-                                throw new InvalidOperationException("Supabase connection string not found.");
             _logger = logger;
-            InitializeDatabase().Wait(); // Asynchronen Aufruf blockieren oder als HostedService starten
+
+            var directConnection = configuration.GetConnectionString("Supabase");
+            var poolerConnection = configuration.GetConnectionString("SupabasePooler");
+
+            if (string.IsNullOrWhiteSpace(directConnection) && string.IsNullOrWhiteSpace(poolerConnection))
+            {
+                throw new InvalidOperationException("Keine Supabase ConnectionStrings gefunden (Supabase oder SupabasePooler).");
+            }
+
+            _connectionString = directConnection ?? poolerConnection!;
+
+            try
+            {
+                InitializeDatabase().GetAwaiter().GetResult();
+                _isAvailable = true;
+            }
+            catch (Exception ex)
+            {
+                if (!string.IsNullOrWhiteSpace(poolerConnection) && !string.Equals(_connectionString, poolerConnection, StringComparison.Ordinal))
+                {
+                    _logger.LogWarning(ex, "Direct-Verbindung fehlgeschlagen, versuche SupabasePooler...");
+                    _connectionString = poolerConnection;
+
+                    try
+                    {
+                        InitializeDatabase().GetAwaiter().GetResult();
+                        _isAvailable = true;
+                        _logger.LogInformation("Supabase-Verbindung über Pooler erfolgreich.");
+                        return;
+                    }
+                    catch (Exception poolerEx)
+                    {
+                        _isAvailable = false;
+                        _logger.LogError(poolerEx, "Supabase ist weder direkt noch über Pooler erreichbar. Die Anwendung läuft im eingeschränkten Modus.");
+                        return;
+                    }
+                }
+
+                _isAvailable = false;
+                _logger.LogError(ex, "Supabase ist aktuell nicht erreichbar. Die Anwendung läuft im eingeschränkten Modus.");
+            }
         }
 
         private async Task ExecuteNonQueryAsync(string sql, params NpgsqlParameter[] parameters)
         {
+            if (!_isAvailable)
+            {
+                throw new InvalidOperationException("Supabase nicht verfügbar.");
+            }
+
             _logger.LogDebug("Executing SQL: {Sql}", sql);
             try
             {
@@ -31,6 +75,7 @@ namespace TippspielWeb.Services
             }
             catch (Exception ex)
             {
+                _isAvailable = false;
                 _logger.LogError(ex, "Error executing SQL: {Sql}", sql);
                 throw;
             }
@@ -38,6 +83,11 @@ namespace TippspielWeb.Services
 
         private async Task<List<T>> ExecuteQueryAsync<T>(string sql, Func<NpgsqlDataReader, T> mapFunction, params NpgsqlParameter[] parameters)
         {
+            if (!_isAvailable)
+            {
+                return new List<T>();
+            }
+
             _logger.LogDebug("Executing Query SQL: {Sql}", sql);
             var results = new List<T>();
             try
@@ -54,6 +104,7 @@ namespace TippspielWeb.Services
             }
             catch (Exception ex)
             {
+                _isAvailable = false;
                 _logger.LogError(ex, "Error executing query SQL: {Sql}", sql);
                 throw;
             }

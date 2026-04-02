@@ -27,7 +27,15 @@ namespace TippspielWeb.Services
             _supabaseService = supabaseService;
             _liveUpdateService = liveUpdateService;
             _logger = logger;
-            InitializeServiceAsync().Wait(); // Blockieren für den Initialisierungsprozess
+
+            try
+            {
+                InitializeServiceAsync().GetAwaiter().GetResult(); // Blockieren für den Initialisierungsprozess
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Initialisierung ohne Datenbank gestartet. Caches bleiben zunächst leer.");
+            }
         }
 
         private async Task InitializeServiceAsync()
@@ -38,17 +46,24 @@ namespace TippspielWeb.Services
         private async Task LadeAlleDatenAusSupabase()
         {
             _logger.LogInformation("Lade alle Daten aus Supabase...");
-            var benutzerList = await _supabaseService.GetBenutzer();
-            _benutzerCache = new ConcurrentDictionary<string, Benutzer>(benutzerList.ToDictionary(b => b.Benutzername));
+            try
+            {
+                var benutzerList = await _supabaseService.GetBenutzer();
+                _benutzerCache = new ConcurrentDictionary<string, Benutzer>(benutzerList.ToDictionary(b => b.Benutzername));
 
-            var mannschaftenList = await _supabaseService.GetMannschaften();
-            _mannschaftenCache = new ConcurrentDictionary<string, Mannschaft>(mannschaftenList.ToDictionary(m => m.Name));
+                var mannschaftenList = await _supabaseService.GetMannschaften();
+                _mannschaftenCache = new ConcurrentDictionary<string, Mannschaft>(mannschaftenList.ToDictionary(m => m.Name));
 
-            var spieleList = await _supabaseService.GetSpiele();
-            _spieleCache = new ConcurrentDictionary<int, Spiel>(spieleList.ToDictionary(s => s.SpielId));
+                var spieleList = await _supabaseService.GetSpiele();
+                _spieleCache = new ConcurrentDictionary<int, Spiel>(spieleList.ToDictionary(s => s.SpielId));
 
-            // Tipps werden spiel- oder benutzerspezifisch geladen, nicht alle auf einmal
-            _logger.LogInformation("Daten aus Supabase geladen.");
+                // Tipps werden spiel- oder benutzerspezifisch geladen, nicht alle auf einmal
+                _logger.LogInformation("Daten aus Supabase geladen.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Supabase momentan nicht erreichbar. Es werden leere Daten angezeigt.");
+            }
         }
 
         private void InvalidateCache()
@@ -59,7 +74,14 @@ namespace TippspielWeb.Services
             _userTippsCache.Clear();
             // Alle Daten werden bei Bedarf neu aus der Datenbank geladen.
             // Eine feinere Cache-Invalidierung könnte hier implementiert werden.
-            LadeAlleDatenAusSupabase().Wait(); // Erneut blockieren oder als Task ausführen
+            try
+            {
+                LadeAlleDatenAusSupabase().GetAwaiter().GetResult(); // Erneut blockieren oder als Task ausführen
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Cache-Refresh ohne Datenbankverbindung übersprungen.");
+            }
         }
 
         // Benutzerverwaltung
