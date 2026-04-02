@@ -18,16 +18,17 @@ Eine ASP.NET Core Blazor Server Anwendung für Fußball-Tippspiele mit Benutzerv
 
 ## Technologie-Stack
 
-- **Framework**: .NET 10.0
+- **Framework**: .NET 8.0 (nicht 10.0, da 8.0 der aktuelle LTS ist)
 - **UI**: Blazor Server (Interactive Server Rendering)
-- **Datenbank**: JSON-Datei (tippspiel_daten.json)
+- **Datenbank**: PostgreSQL (via Supabase) - **WICHTIG: Nicht mehr JSON-Datei!**
 - **Styling**: Bootstrap 5 + Bootstrap Icons
 - **Excel-Export**: ClosedXML 0.105.0
 
 ## Voraussetzungen
 
-- .NET 10.0 SDK oder höher
+- .NET 8.0 SDK oder höher
 - Windows/Linux/macOS
+- Eine Supabase (PostgreSQL) Instanz mit Zugangsdaten in `appsettings.json`
 
 ## Installation & Lokale Entwicklung
 
@@ -47,7 +48,7 @@ dotnet run
 
 ## Deployment auf Render
 
-Diese Anwendung ist für Render.com vorbereitet.
+Diese Anwendung ist für Render.com vorbereitet und nutzt Supabase (PostgreSQL) für die Datenpersistenz.
 
 ### Render Einstellungen:
 
@@ -55,15 +56,21 @@ Diese Anwendung ist für Render.com vorbereitet.
 - **Start Command**: `cd out && dotnet TippspielWeb.dll --urls "http://0.0.0.0:$PORT"`
 - **Environment**: .NET
 
-### Umgebungsvariablen (optional):
+### Umgebungsvariablen:
 
-Keine zusätzlichen Umgebungsvariablen erforderlich.
+Stelle sicher, dass die PostgreSQL-Verbindungszeichenfolge in `appsettings.json` oder als Umgebungsvariable `ConnectionStrings__Supabase` auf Render konfiguriert ist:
+
+`ConnectionStrings__Supabase="Host=db.prjlfyahewmzqidfzmei.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=Asde2221;SSL Mode=Require;Trust Server Certificate=true"`
+
+### Datenpersistenz auf Render (Wichtig!)
+
+Durch die Migration zu Supabase (PostgreSQL) sind deine Anwendungsdaten nun persistent und gehen bei einem Neustart des Render-Dienstes nicht mehr verloren. Du benötigst keine Render Disks mehr für die Datenhaltung selbst. Stelle sicher, dass deine Supabase-Instanz aktiv ist und die Verbindungszeichenfolge korrekt ist.
 
 ## Konfiguration
 
 ### Admin-Zugang
 
-- **Admin-Passwort**: `admin123` (in `TippspielService.cs` änderbar)
+- **Admin-Passwort**: `admin123` (Standardwert in `TippspielService.cs` änderbar. Wird beim ersten Start des `SupabaseService` gehasht und in der `Benutzer`-Tabelle als Admin-User angelegt, falls noch kein Admin existiert).
 
 ### Server-Einstellungen
 
@@ -83,10 +90,11 @@ TippspielWeb/
 │   │   └── Profil.razor
 │   └── App.razor
 ├── Models/
-│   └── TippspielModels.cs    # Datenmodelle
+│   └── TippspielModels.cs    # Datenmodelle (angepasst für PostgreSQL)
 ├── Services/
-│   ├── TippspielService.cs   # Business-Logik
-│   └── AuthService.cs        # Authentifizierung
+│   ├── TippspielService.cs   # Business-Logik (nutzt SupabaseService)
+│   ├── AuthService.cs        # Authentifizierung
+│   └── SupabaseService.cs    # Datenbank-Interaktion mit PostgreSQL/Npgsql
 ├── wwwroot/                   # Statische Dateien
 ├── Program.cs                 # Startup-Konfiguration
 └── appsettings.json          # App-Konfiguration
@@ -96,21 +104,21 @@ TippspielWeb/
 
 ### Als Spieler:
 
-1. **Registrieren**: Erstelle einen Account mit eindeutigem Benutzernamen
-2. **Tipps abgeben**: Tippe Ergebnisse bis 1 Stunde vor Spielbeginn
-3. **Turniertipp**: Tippe auf Weltmeister und Vizemeister
-4. **Statistiken**: Verfolge deine Erfolgsquote
-5. **Alle Tipps**: Sehe alle Tipps sobald Spiele gesperrt sind
+1.  **Registrieren**: Erstelle einen Account mit eindeutigem Benutzernamen
+2.  **Tipps abgeben**: Tippe Ergebnisse bis 1 Stunde vor Spielbeginn
+3.  **Turniertipp**: Tippe auf Weltmeister und Vizemeister
+4.  **Statistiken**: Verfolge deine Erfolgsquote
+5.  **Alle Tipps**: Sehe alle Tipps sobald Spiele gesperrt sind
 
 ### Als Admin:
 
-1. **Login**: Verwende das Admin-Passwort
-2. **Mannschaften**: Lege Mannschaften für schnellere Spielerstellung an
-3. **Spiele**: Erstelle Spiele und trage Ergebnisse ein
-4. **Tipps überwachen**: Sehe alle abgegebenen Tipps
-5. **Turniertipps**: Übersicht aller Turniertipps
-6. **Benutzerverwaltung**: Verwalte Benutzer-Accounts
-7. **Excel-Export**: Exportiere alle Daten
+1.  **Login**: Verwende das Admin-Passwort (Standard: 'admin123')
+2.  **Mannschaften**: Lege Mannschaften für schnellere Spielerstellung an
+3.  **Spiele**: Erstelle Spiele und trage Ergebnisse ein
+4.  **Tipps überwachen**: Sehe alle abgegebenen Tipps
+5.  **Turniertipps**: Übersicht aller Turniertipps
+6.  **Benutzerverwaltung**: Verwalte Benutzer-Accounts
+7.  **Excel-Export**: Exportiere alle Daten
 
 ## Punkte-System
 
@@ -124,27 +132,3 @@ TippspielWeb/
 - Passwörter werden mit SHA256 gehasht gespeichert
 - Admin-Bereich durch Passwort geschützt
 - Session-basierte Authentifizierung
-- Validierung von Benutzereingaben
-
-## Datenpersistenz
-
-Alle Daten werden in `tippspiel_daten.json` gespeichert:
-- Benutzer mit Passwort-Hashes
-- Mannschaften
-- Spieler mit Punkten
-- Spiele mit Tipps
-- Turniertipps
-
-**Wichtig**: Stelle sicher, dass diese Datei regelmäßig gesichert wird!
-
-## Google Analytics (optional)
-
-Google Analytics ist integriert. Analytics-ID kann in `Components/App.razor` angepasst werden.
-
-## Lizenz
-
-Dieses Projekt ist für private/kommerzielle Nutzung frei verfügbar.
-
-## Support
-
-Bei Fragen oder Problemen erstelle bitte ein Issue im Repository.

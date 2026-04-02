@@ -11,10 +11,15 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Supabase Service für Datenbankzugriff
+// Logging hinzufügen
+builder.Services.AddLogging(configure => configure.AddConsole());
+
+// Supabase Service für Datenbankzugriff registrieren
+// Hier wird auch der ILogger für SupabaseService hinzugefügt
 builder.Services.AddSingleton<SupabaseService>();
 
 // Tippspiel Service als Singleton registrieren
+// TippspielService hängt von SupabaseService und LiveUpdateService ab
 builder.Services.AddSingleton<TippspielService>();
 builder.Services.AddSingleton<AuthService>();
 

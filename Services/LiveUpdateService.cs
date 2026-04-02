@@ -11,6 +11,15 @@ public class PrahlEvent
 
 public class LiveUpdateService : IHostedService, IDisposable
 {
+    public enum UpdateType
+    {
+        SpieleChanged,
+        ErgebnisseChanged,
+        MannschaftenChanged,
+        TippsChanged,
+        RanglisteChanged
+    }
+
     private readonly IServiceProvider _serviceProvider;
     private Timer? _timer;
     private readonly ILogger<LiveUpdateService> _logger;
@@ -18,6 +27,7 @@ public class LiveUpdateService : IHostedService, IDisposable
     
     // Event für Prahl-Aktionen
     public event Action<PrahlEvent>? OnPrahlAktion;
+    public event Action<UpdateType>? OnUpdate;
     private static LiveUpdateService? _instance;
 
     public LiveUpdateService(IServiceProvider serviceProvider, ILogger<LiveUpdateService> logger)
@@ -54,7 +64,7 @@ public class LiveUpdateService : IHostedService, IDisposable
             var httpClient = httpClientFactory.CreateClient();
             var openLigaService = new OpenLigaDBService(httpClient);
 
-            var alleSpiele = tippspielService.GetAlleSpiele();
+            var alleSpiele = await tippspielService.GetAlleSpieleAsync();
             var heuteSpiele = alleSpiele.Where(s => 
                 s.SpielDatum.Date == DateTime.Today && 
                 !s.IstBeendet()
@@ -120,6 +130,11 @@ public class LiveUpdateService : IHostedService, IDisposable
     public void Dispose()
     {
         _timer?.Dispose();
+    }
+
+    public void SendUpdate(UpdateType updateType)
+    {
+        OnUpdate?.Invoke(updateType);
     }
     
     public void TriggerPrahlAktion(string spielerName, string nachricht)

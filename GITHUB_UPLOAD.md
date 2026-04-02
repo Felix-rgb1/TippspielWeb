@@ -6,18 +6,19 @@ Da Git nicht auf deinem System installiert ist, kannst du das Projekt manuell zu
 
 ### Schritt 1: Projekt vorbereiten
 
-1. **Erstelle einen ZIP des Projekts**:
-   - Gehe zu `C:\Users\User\Desktop\C#\Test\`
-   - Rechtsklick auf den Ordner `TippspielWeb`
-   - "Senden an" → "ZIP-komprimierter Ordner"
-   - Nenne ihn `TippspielWeb.zip`
+1.  **Erstelle einen ZIP des Projekts**:
+    - Gehe zu `C:\Users\User\Desktop\C#\Test\`
+    - Rechtsklick auf den Ordner `TippspielWeb`
+    - "Senden an" → "ZIP-komprimierter Ordner"
+    - Nenne ihn `TippspielWeb.zip`
 
-2. **Lösche temporäre Ordner** (WICHTIG - VOR dem Zippen oder danach aus dem ZIP entfernen):
-   - `bin/`
-   - `obj/`
-   - `publish/`
-   - `TippspielWeb_Deploy/`
-   - `.vs/`
+2.  **Lösche temporäre Ordner** (WICHTIG - VOR dem Zippen oder danach aus dem ZIP entfernen):
+    - `bin/`
+    - `obj/`
+    - `publish/`
+    - `TippspielWeb_Deploy/`
+    - `.vs/`
+    - **Entferne `tippspiel_daten.json`** - diese Datei wird nicht mehr für die Datenhaltung benötigt.
 
 ### Schritt 2: GitHub Repository erstellen
 
@@ -42,11 +43,12 @@ Da Git nicht auf deinem System installiert ist, kannst du das Projekt manuell zu
 3. **Commit-Nachricht**: "Initial commit - TippspielWeb"
 4. Klicke "Commit changes"
 
-⚠️ **Wichtig**: Lade NICHT diese Ordner hoch:
+⚠️ **Wichtig**: Lade NICHT diese Ordner und Dateien hoch:
 - `bin/`
 - `obj/`
 - `publish/`
 - `TippspielWeb_Deploy/`
+- `tippspiel_daten.json` (nicht mehr für Datenhaltung relevant)
 
 ## Methode 2: GitHub Desktop (Empfohlen für regelmäßige Updates)
 
@@ -128,6 +130,7 @@ Die `.gitignore` Datei verhindert automatisch Upload von:
 - `.vs/` - Visual Studio Cache
 - `TippspielWeb_Deploy/` - Alte Deploy-Ordner
 - `*.user` - Benutzer-spezifische Einstellungen
+- `tippspiel_daten.json` (wird nicht mehr verwendet)
 
 ## Wichtige Dateien für Deployment
 
@@ -140,25 +143,5 @@ Die `.gitignore` Datei verhindert automatisch Upload von:
 - `Program.cs`
 - `wwwroot/` - Kompletter Ordner
 - `Components/` - Kompletter Ordner
-- `Models/` - Kompletter Ordner
-- `Services/` - Kompletter Ordner
-- `.gitignore`
-- `README.md`
-- `render.yaml`
-
-## Troubleshooting
-
-### "File too large"
-- Stelle sicher, dass `bin/` und `obj/` nicht hochgeladen werden
-- GitHub hat 100MB Datei-Limit
-
-### "Repository is empty"
-- Du hast vergessen Dateien hochzuladen
-- Nutze "uploading an existing file" Link
-
-### Updates hochladen
-- **Web**: Lösche alte Dateien, lade neue hoch
-- **GitHub Desktop**: Commit → Push
-- **Git**: `git add .` → `git commit -m "Update"` → `git push`
-
-Viel Erfolg! 🚀
+- `Models/` - Kom
+...

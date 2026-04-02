@@ -71,10 +71,15 @@ Fülle die Einstellungen wie folgt aus:
 **Advanced Settings** (optional):
 - **Auto-Deploy**: YES (automatisches Deployment bei Git-Push)
 
-### 5. Environment Variables (optional)
+### 5. Environment Variables (wichtig für Datenbank)
 
-Keine Umgebungsvariablen erforderlich, außer du möchtest:
-- `ASPNETCORE_ENVIRONMENT=Production` (wird automatisch gesetzt)
+Die Anwendung verwendet nun eine PostgreSQL-Datenbank (z.B. Supabase) für die Datenpersistenz. Stelle sicher, dass die Verbindungszeichenfolge korrekt über die `appsettings.json` oder über Umgebungsvariablen bereitgestellt wird.
+
+Füge die Umgebungsvariable für die Datenbankverbindung hinzu (falls nicht direkt in `appsettings.json` für Produktion): 
+- **Key**: `ConnectionStrings__Supabase`
+- **Value**: `Host=db.prjlfyahewmzqidfzmei.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=Asde2221;SSL Mode=Require;Trust Server Certificate=true`
+
+(Der Wert sollte dem aus deiner `appsettings.Production.json` entsprechen oder von Supabase bereitgestellt werden.)
 
 ### 6. Deployment starten
 
@@ -91,21 +96,9 @@ Die App ist erreichbar unter: `https://tippspielweb.onrender.com` (oder dein gew
 
 ### Datenpersistenz
 
-⚠️ **WICHTIG**: Render Free Tier hat keinen persistenten Speicher!
+✅ **Die Anwendung verwendet jetzt PostgreSQL (z.B. Supabase) für die Datenpersistenz!**
 
-Die `tippspiel_daten.json` wird bei jedem Neustart gelöscht. Lösungen:
-
-**Option 1: Render Disk (kostenpflichtig)**
-- Füge einen Persistent Disk hinzu in den Render Settings
-- Mount Path: `/app/out`
-
-**Option 2: Externe Datenbank**
-- Migriere zu PostgreSQL oder MongoDB (kostenlos auf Render verfügbar)
-- Erfordert Code-Änderungen
-
-**Option 3: Regelmäßige Backups**
-- Erstelle einen Cron-Job für Excel-Exports
-- Speichere Backups extern
+Das bedeutet, die `tippspiel_daten.json` Datei wird nicht mehr für die Speicherung der Anwendungsdaten verwendet und deine Daten gehen bei einem Neustart des Render-Dienstes **NICHT** mehr verloren. Stelle sicher, dass deine Supabase-Instanz korrekt konfiguriert ist und die Verbindungszeichenfolge stimmt.
 
 ### Performance
 
@@ -121,8 +114,7 @@ Die `tippspiel_daten.json` wird bei jedem Neustart gelöscht. Lösungen:
 
 ### Admin-Passwort ändern
 
-Vor dem Deployment das Admin-Passwort ändern in:
-`Services/TippspielService.cs` → Zeile mit `ADMIN_PASSWORT`
+Das Admin-Passwort ist in `Services/TippspielService.cs` definiert. Es wird beim ersten Start der Anwendung in der Datenbank gehasht und ein Admin-Benutzer angelegt, falls noch keiner existiert.
 
 ### Custom Domain (optional)
 
@@ -142,33 +134,11 @@ In Render Settings → "Custom Domains" kannst du deine eigene Domain verbinden.
 - Stelle sicher, dass `$PORT` Variable verwendet wird
 - Render weist dynamisch einen Port zu
 
-### Daten gehen verloren
-- Siehe "Datenpersistenz" Lösungen oben
-- Erwäge Migration zu echter Datenbank
+### Datenzugriffsprobleme
+- Prüfe die PostgreSQL-Verbindungszeichenfolge in `appsettings.json` oder den Umgebungsvariablen.
+- Stelle sicher, dass deine Supabase-Datenbankinstanz erreichbar und korrekt konfiguriert ist.
 
 ## Updates deployen
 
-Nach Änderungen am Code:
-
-```bash
-git add .
-git commit -m "Beschreibung der Änderungen"
-git push
-```
-
-Render deployed automatisch die neuen Änderungen!
-
-## Support
-
-Bei Problemen:
-1. Prüfe Render Logs im Dashboard
-2. Schaue in die .NET Logs
-3. Erstelle ein Issue im GitHub Repository
-
-## Kosten-Übersicht
-
-- **Free Tier**: $0/Monat (mit Einschränkungen)
-- **Starter**: $7/Monat (empfohlen für Produktion)
-- **Persistent Disk**: +$1/GB/Monat (optional)
-
-Viel Erfolg mit deinem Tippspiel! ⚽🏆
+Nach Änderungen
+...

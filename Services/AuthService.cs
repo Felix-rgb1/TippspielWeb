@@ -1,43 +1,68 @@
-using System.Security.Cryptography;
-using System.Text;
+using System.Security.Claims;
+using TippspielWeb.Models;
 
-namespace TippspielWeb.Services;
-
-public class AuthService
+namespace TippspielWeb.Services
 {
-    private string? _aktuellerBenutzer = null;
-    private bool _istAdmin = false;
-
-    public string? AktuellerBenutzer => _aktuellerBenutzer;
-    public bool IstAngemeldet => !string.IsNullOrEmpty(_aktuellerBenutzer);
-    public bool IstAdmin => _istAdmin;
-
-    public event Action? OnAuthStateChanged;
-
-    public void Anmelden(string benutzername, bool istAdmin)
+    public class AuthService
     {
-        _aktuellerBenutzer = benutzername;
-        _istAdmin = istAdmin;
-        OnAuthStateChanged?.Invoke();
-    }
+        private readonly TippspielService _tippspielService;
 
-    public void Abmelden()
-    {
-        _aktuellerBenutzer = null;
-        _istAdmin = false;
-        OnAuthStateChanged?.Invoke();
-    }
+        public bool IstAngemeldet { get; private set; }
+        public bool IstAdmin { get; private set; }
+        public string AktuellerBenutzer { get; private set; } = string.Empty;
 
-    public static string HashPasswort(string passwort)
-    {
-        using var sha256 = SHA256.Create();
-        var bytes = Encoding.UTF8.GetBytes(passwort);
-        var hash = sha256.ComputeHash(bytes);
-        return Convert.ToBase64String(hash);
-    }
+        public AuthService(TippspielService tippspielService)
+        {
+            _tippspielService = tippspielService;
+        }
 
-    public static bool VerifyPasswort(string passwort, string hash)
-    {
-        return HashPasswort(passwort) == hash;
+        public void Anmelden(string benutzername, bool istAdmin)
+        {
+            AktuellerBenutzer = benutzername;
+            IstAdmin = istAdmin;
+            IstAngemeldet = true;
+        }
+
+        public void Abmelden()
+        {
+            AktuellerBenutzer = string.Empty;
+            IstAdmin = false;
+            IstAngemeldet = false;
+        }
+
+        public async Task<ClaimsPrincipal?> ValidateLogin(string benutzername, string passwort)
+        {
+            if (await _tippspielService.BestaetigeLogin(benutzername, passwort))
+            {
+                var benutzer = await _tippspielService.GetBenutzer(benutzername);
+                if (benutzer != null)
+                {
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, benutzer.Benutzername),
+                        new Claim(ClaimTypes.Role, benutzer.IstAdmin ? "Admin" : "User")
+                    };
+
+                    var identity = new ClaimsIdentity(claims, "TippspielAuth");
+                    return new ClaimsPrincipal(identity);
+                }
+            }
+            return null;
+        }
+
+        public async Task<ClaimsPrincipal?> ValidateAdminLogin(string passwort)
+        {
+            if (await _tippspielService.BestaetigeAdminPasswort(passwort))
+            {
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, "Admin"),
+                    new Claim(ClaimTypes.Role, "Admin")
+                };
+                var identity = new ClaimsIdentity(claims, "TippspielAdminAuth");
+                return new ClaimsPrincipal(identity);
+            }
+            return null;
+        }
     }
 }

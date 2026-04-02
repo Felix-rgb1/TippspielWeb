@@ -1,168 +1,91 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace TippspielWeb.Models;
-
-// Klasse für einen Benutzer (mit Authentifizierung)
-public class Benutzer
+namespace TippspielWeb.Models
 {
-    public string Benutzername { get; set; } = string.Empty;
-    public string PasswortHash { get; set; } = string.Empty;
-    public DateTime RegistriertAm { get; set; } = DateTime.Now;
-    public bool IstAdmin { get; set; } = false;
-    public string? WeltmeisterTipp { get; set; }
-    public string? VizemeisterTipp { get; set; }
-
-    public Benutzer() { }
-
-    public Benutzer(string benutzername, string passwortHash, bool istAdmin = false)
+    public class TippspielDaten
     {
-        Benutzername = benutzername;
-        PasswortHash = passwortHash;
-        IstAdmin = istAdmin;
-        RegistriertAm = DateTime.Now;
-    }
-}
-
-// Klasse für eine Mannschaft
-public class Mannschaft
-{
-    public string Name { get; set; } = string.Empty;
-
-    public Mannschaft() { }
-
-    public Mannschaft(string name)
-    {
-        Name = name;
+        // Diese Klasse wird nach der Migration zu Supabase/PostgreSQL
+        // als Hauptdatenstruktur nicht mehr direkt verwendet.
+        // Die Daten werden stattdessen direkt aus der Datenbank geladen und dort gespeichert.
+        public List<Benutzer> Benutzer { get; set; } = new();
+        public List<Mannschaft> Mannschaften { get; set; } = new();
+        public List<Spiel> Spiele { get; set; } = new();
     }
 
-    public override string ToString()
+    public class Benutzer
     {
-        return Name;
-    }
-}
-
-// Klasse für einen Spieler
-public class Spieler
-{
-    public string Name { get; set; } = string.Empty;
-    public int Punkte { get; set; }
-
-    public Spieler() { }
-
-    public Spieler(string name)
-    {
-        Name = name;
-        Punkte = 0;
+        [Key]
+        public string Benutzername { get; set; } = string.Empty;
+        public string PasswortHash { get; set; } = string.Empty;
+        public DateTime RegistriertAm { get; set; } = DateTime.UtcNow;
+        public bool IstAdmin { get; set; } = false;
+        public string? WeltmeisterTipp { get; set; }
+        public string? VizemeisterTipp { get; set; }
+        public int Punkte { get; set; } = 0; // Punkte werden direkt im Benutzerobjekt gespeichert
     }
 
-    public override string ToString()
+    public class Mannschaft
     {
-        return $"{Name} - Punkte: {Punkte}";
-    }
-}
-
-// Klasse für ein Spiel
-public class Spiel
-{
-    public int SpielNummer { get; set; }
-    public string Spieltag { get; set; } = string.Empty;
-    public string Heimmannschaft { get; set; } = string.Empty;
-    public string Gastmannschaft { get; set; } = string.Empty;
-    public DateTime SpielDatum { get; set; }
-    public int? HeimTore { get; set; }
-    public int? GastTore { get; set; }
-    public Dictionary<string, Tipp> Tipps { get; set; } = new();
-
-    public Spiel() { }
-
-    public Spiel(int spielNummer, string spieltag, string heimmannschaft, string gastmannschaft, DateTime spielDatum)
-    {
-        SpielNummer = spielNummer;
-        Spieltag = spieltag;
-        Heimmannschaft = heimmannschaft;
-        Gastmannschaft = gastmannschaft;
-        SpielDatum = spielDatum;
-        HeimTore = null;
-        GastTore = null;
-        Tipps = new Dictionary<string, Tipp>();
+        [Key]
+        public string Name { get; set; } = string.Empty;
     }
 
-    public void SetzeErgebnis(int heimTore, int gastTore)
+    public class Spiel
     {
-        HeimTore = heimTore;
-        GastTore = gastTore;
+        [Key]
+        public int SpielId { get; set; } // Auto-incrementing primary key in DB
+        public int SpielNummer
+        {
+            get => SpielId;
+            set => SpielId = value;
+        }
+        public string Spieltag { get; set; } = string.Empty;
+        public string Heimmannschaft { get; set; } = string.Empty;
+        public string Gastmannschaft { get; set; } = string.Empty;
+        public DateTime SpielDatum { get; set; }
+        public int? HeimTore { get; set; }
+        public int? GastTore { get; set; }
+
+        // Tipps werden nun in einer separaten Tabelle gespeichert und hier
+        // bei Bedarf geladen (z.B. für die Anzeige).
+        // [JsonIgnore] // Nicht direkt serialisieren, da aus DB geladen
+        // public Dictionary<string, Tipp> Tipps { get; set; } = new();
+
+        [JsonIgnore]
+        public Dictionary<string, Tipp> Tipps { get; set; } = new();
+
+        [JsonIgnore]
+        public bool IstGesperrt => SpielDatum.AddHours(-1) < DateTime.Now;
+
+        public bool IstBeendet() => HeimTore.HasValue && GastTore.HasValue;
+
+        public bool IstLive()
+        {
+            var now = DateTime.Now;
+            return !IstBeendet() && now >= SpielDatum && now <= SpielDatum.AddHours(3);
+        }
     }
 
-    public bool IstBeendet()
+    public class Tipp
     {
-        return HeimTore.HasValue && GastTore.HasValue;
+        [Key]
+        public int TippId { get; set; } // Auto-incrementing primary key in DB
+        public string Benutzername { get; set; } = string.Empty; // Foreign Key to Benutzer
+        public int SpielId { get; set; } // Foreign Key to Spiel
+        public int HeimTore { get; set; }
+        public int GastTore { get; set; }
+
+        // Navigation properties (optional, für ORMs, hier nicht direkt verwendet aber hilfreich für Verständnis)
+        [JsonIgnore]
+        public Benutzer? Benutzer { get; set; }
+        [JsonIgnore]
+        public Spiel? Spiel { get; set; }
     }
 
-    public bool IstLive()
+    public class Spieler
     {
-        // Spiel ist live wenn: Datum in der Vergangenheit liegt, aber noch kein Ergebnis eingetragen
-        return DateTime.Now >= SpielDatum && !IstBeendet() && DateTime.Now <= SpielDatum.AddHours(3);
-    }
-
-    public override string ToString()
-    {
-        string ergebnis = IstBeendet() ? $"{HeimTore}:{GastTore}" : "offen";
-        string datum = SpielDatum.ToString("dd.MM.yyyy HH:mm");
-        return $"ST{Spieltag}: {Heimmannschaft} vs {Gastmannschaft} - {datum} ({ergebnis})";
-    }
-}
-
-// Klasse für einen Tipp
-public class Tipp
-{
-    public string SpielerName { get; set; } = string.Empty;
-    public int HeimTore { get; set; }
-    public int GastTore { get; set; }
-
-    public Tipp() { }
-
-    public Tipp(string spielerName, int heimTore, int gastTore)
-    {
-        SpielerName = spielerName;
-        HeimTore = heimTore;
-        GastTore = gastTore;
-    }
-
-    public override string ToString()
-    {
-        return $"{HeimTore}:{GastTore}";
-    }
-}
-
-// Klasse für JSON-Serialisierung
-public class TippspielDaten
-{
-    public List<Benutzer> Benutzer { get; set; } = new();
-    public List<Mannschaft> Mannschaften { get; set; } = new();
-    public List<Spieler> Spieler { get; set; } = new();
-    public List<Spiel> Spiele { get; set; } = new();
-    public List<PrahlAktion> PrahlAktionen { get; set; } = new();
-}
-
-// Klasse für Prahl-Aktionen
-public class PrahlAktion
-{
-    public string SpielerName { get; set; } = string.Empty;
-    public string Nachricht { get; set; } = string.Empty;
-    public DateTime Zeitstempel { get; set; } = DateTime.Now;
-    public string Spieltag { get; set; } = string.Empty;
-    public int Platz { get; set; }
-    public int Punkte { get; set; }
-
-    public PrahlAktion() { }
-
-    public PrahlAktion(string spielerName, string nachricht, string spieltag, int platz, int punkte)
-    {
-        SpielerName = spielerName;
-        Nachricht = nachricht;
-        Zeitstempel = DateTime.Now;
-        Spieltag = spieltag;
-        Platz = platz;
-        Punkte = punkte;
+        public string Name { get; set; } = string.Empty;
+        public int Punkte { get; set; } = 0;
     }
 }

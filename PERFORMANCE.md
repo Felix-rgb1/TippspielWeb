@@ -4,7 +4,7 @@ Dieses Dokument beschreibt die implementierten Performance-Optimierungen für di
 
 ## Übersicht
 
-Die Anwendung wurde an mehreren Stellen optimiert, um die Ladezeiten und Reaktionsfähigkeit zu verbessern.
+Die Anwendung wurde an mehreren Stellen optimiert, um die Ladezeiten und Reaktionsfähigkeit zu verbessern. Mit der Umstellung auf eine PostgreSQL-Datenbank (Supabase) als primäre Datenquelle ergeben sich neue Optimierungspunkte im Backend.
 
 ## Implementierte Optimierungen
 
@@ -22,12 +22,12 @@ private Dictionary<string, object> _statistikCache = new();
 ```
 
 #### Lazy Data Loading
-- Daten werden nur einmal beim ersten Laden geladen (`_isDatenGeladen` Flag)
-- Verhindert unnötige Datenbankabfragen bei Re-Renders
+- Daten werden nur einmal beim ersten Laden geladen (`_isDatenGeladen` Flag) aus dem `TippspielService` Cache.
+- Verhindert unnötige Datenbankabfragen bei Re-Renders.
 
 #### Selektive Updates (AdminBereich)
-- `Aktualisieren(bool vollstaendig)` lädt nur die für den aktuellen Tab benötigten Daten
-- Reduziert Datenbankaufrufe um bis zu 75%
+- `Aktualisieren(bool vollstaendig)` lädt nur die für den aktuellen Tab benötigten Daten über den `TippspielService`.
+- Reduziert Datenbankaufrufe und Service-Cache-Aktualisierungen um bis zu 75%.
 
 ```csharp
 // Beispiel: AdminBereich.razor
@@ -86,54 +86,51 @@ body {
 - Scroll-Performance durch `-webkit-overflow-scrolling: touch`
 - Reduzierte Reflows durch optimierte Media Queries
 
-## Performance-Metriken
+## Performance-Metriken (nach Migration zu PostgreSQL)
 
-### Vor Optimierung
+### Vor Optimierung (JSON-basiert)
 - Initiales Laden: ~2-3 Sekunden
 - Tab-Wechsel: ~500-800ms
 - Statistik-Berechnung: ~300-500ms
-- Jeder Render: Vollständige Datenbankabfragen
+- Jeder Render: Vollständige Dateilese-Operationen
 
-### Nach Optimierung
-- Initiales Laden: ~1-1.5 Sekunden
-- Tab-Wechsel: ~50-150ms
+### Nach Optimierung (PostgreSQL-basiert mit Service-Caching)
+- Initiales Laden: ~1-2 Sekunden (abhängig von DB-Latenz und Initialisierung)
+- Tab-Wechsel: ~50-150ms (Cache-Hit)
 - Statistik-Berechnung: ~10-50ms (mit Cache)
-- Selektive Renders: Nur geänderte Daten werden aktualisiert
+- Selektive Renders: Nur geänderte Daten werden aktualisiert, DB-Zugriffe minimiert durch `TippspielService` Cache.
 
 ## Best Practices für Entwickler
 
-### 1. Caching nutzen
+### 1. Caching auf Service- und Komponentenebene nutzen
 ```csharp
-// Cache-Ergebnis verwenden
-if (!_cache.ContainsKey(key))
-{
-    _cache[key] = ExpensiveOperation();
-}
-return _cache[key];
+// TippspielService Cache-Ergebnis verwenden
+if (_benutzerCache.TryGetValue(key, out var user)) return user;
+// ... sonst aus Supabase laden und Cache aktualisieren
 ```
 
-### 2. Cache invalidieren
+### 2. Cache invalidieren nur bei Bedarf
 ```csharp
-// Nach Datenänderung
-private void CacheLöschen()
+// Nach Datenänderung im TippspielService
+private void InvalidateCache()
 {
-    _spieltagCache.Clear();
-    _statistikCache.Clear();
+    _benutzerCache.Clear();
+    // ... und dann gezielt neu laden oder auf Bedarf laden lassen
 }
 ```
 
 ### 3. Selektive Aktualisierungen
 ```csharp
-// Nur notwendige Daten laden
+// Nur notwendige Daten laden (im TippspielService)
 if (vollstaendig || tab == "spezifisch")
 {
-    daten = Service.GetDaten();
+    daten = await _supabaseService.GetDaten();
 }
 ```
 
-### 4. StateHasChanged() sparsam nutzen
+### 4. `StateHasChanged()` sparsam nutzen
 ```csharp
-// Nur nach echten Änderungen
+// Nur nach echten Änderungen, um unnötige UI-Rerenders zu vermeiden
 if (changed)
 {
     StateHasChanged();
@@ -149,41 +146,11 @@ if (changed)
 
 ### Mittelfristig
 - [ ] Server-Side Paging für große Datenmengen
-- [ ] WebSocket für Live-Updates statt Polling
+- [ ] WebSocket für Live-Updates statt Polling (weiter ausbauen)
 - [ ] Service Worker für Offline-Funktionalität
 
 ### Langfristig
 - [ ] CDN für statische Assets
-- [ ] Gzip/Brotli Kompression
-- [ ] Code-Splitting für große Components
-- [ ] Response Caching auf Server-Ebene
-
-## Monitoring
-
-### Browser DevTools
-1. **Network Tab**: Ladezeiten überwachen
-2. **Performance Tab**: Rendering-Performance analysieren
-3. **Memory Tab**: Memory Leaks erkennen
-
-### Wichtige Metriken
-- **First Contentful Paint (FCP)**: < 1.5s
-- **Time to Interactive (TTI)**: < 2.5s
-- **Total Blocking Time (TBT)**: < 200ms
-
-## Troubleshooting
-
-### Problem: Langsame Statistik-Berechnung
-**Lösung**: Cache nutzen und nur bei Datenänderung invalidieren
-
-### Problem: Langsame Tab-Wechsel
-**Lösung**: `content-visibility: auto` für inaktive Tabs verwenden
-
-### Problem: Ruckelige Animationen
-**Lösung**: `will-change` und `transform: translateZ(0)` verwenden
-
-### Problem: Hoher Memory-Verbrauch
-**Lösung**: Caches periodisch leeren und Referenzen entfernen
-
-## Kontakt
-
-Bei Fragen zu Performance-Optimierungen wenden Sie sich an das Entwicklungsteam.
+- [ ] Gzip/Brotli Kompression für HTTP-Responses
+- [ ] **Datenbankindizierung**: Für häufig genutzte Spalten (z.B. `Benutzername` in `Tipps`, `SpielId` in `Tipps`) Indizes in PostgreSQL hinzufügen, um Abfragezeiten zu beschleunigen.
+...
