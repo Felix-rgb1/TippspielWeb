@@ -239,9 +239,20 @@ namespace TippspielWeb.Services
 
         public async Task<bool> BestaetigeAdminPasswort(string passwort)
         {
-            // Das Admin-Passwort ist ein fixes Passwort, nicht an einen Benutzer gebunden.
-            // Hier wird direkt der Hash des Admin-Passworts überprüft.
-            return ADMIN_PASSWORT.HashPassword().VerifyPassword(passwort);
+            if (string.IsNullOrWhiteSpace(passwort))
+            {
+                return false;
+            }
+
+            // Backward-compatible Fallback fuer bestehende Installationen.
+            if (passwort == ADMIN_PASSWORT)
+            {
+                return true;
+            }
+
+            // Bevorzugt: Passwort eines echten Admin-Benutzers aus der Datenbank.
+            var benutzer = await _supabaseService.GetBenutzer();
+            return benutzer.Any(u => u.IstAdmin && u.PasswortHash.VerifyPassword(passwort));
         }
 
         public async Task<List<Benutzer>> GetAllBenutzerAsync()
