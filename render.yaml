@@ -9,3 +9,5 @@ services:
         value: Production
       - key: ConnectionStrings__Supabase
         sync: false
+      - key: ConnectionStrings__SupabasePooler
+        sync: false

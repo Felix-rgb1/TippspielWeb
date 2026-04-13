@@ -15,8 +15,9 @@ namespace TippspielWeb.Services
         {
             _logger = logger;
 
-            var directConnection = configuration.GetConnectionString("Supabase");
-            var poolerConnection = configuration.GetConnectionString("SupabasePooler");
+            var fallbackConfiguration = BuildFileConfiguration();
+            var directConnection = GetNonEmptyConnectionString(configuration, fallbackConfiguration, "Supabase");
+            var poolerConnection = GetNonEmptyConnectionString(configuration, fallbackConfiguration, "SupabasePooler");
 
             if (string.IsNullOrWhiteSpace(directConnection) && string.IsNullOrWhiteSpace(poolerConnection))
             {
@@ -55,6 +56,29 @@ namespace TippspielWeb.Services
                 _isAvailable = false;
                 _logger.LogError(ex, "Supabase ist aktuell nicht erreichbar. Die Anwendung läuft im eingeschränkten Modus.");
             }
+        }
+
+        private static IConfiguration BuildFileConfiguration()
+        {
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+
+            return new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile($"appsettings.{environment}.json", optional: true)
+                .Build();
+        }
+
+        private static string? GetNonEmptyConnectionString(IConfiguration runtimeConfiguration, IConfiguration fallbackConfiguration, string name)
+        {
+            var runtimeValue = runtimeConfiguration.GetConnectionString(name);
+            if (!string.IsNullOrWhiteSpace(runtimeValue))
+            {
+                return runtimeValue;
+            }
+
+            var fallbackValue = fallbackConfiguration.GetConnectionString(name);
+            return string.IsNullOrWhiteSpace(fallbackValue) ? null : fallbackValue;
         }
 
         private async Task ExecuteNonQueryAsync(string sql, params NpgsqlParameter[] parameters)
