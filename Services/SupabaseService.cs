@@ -40,6 +40,7 @@ namespace TippspielWeb.Services
                 {
                     _logger.LogWarning(ex, "Direct-Verbindung fehlgeschlagen, versuche SupabasePooler...");
                     _connectionString = poolerConnection;
+                    _isAvailable = true;
 
                     try
                     {
