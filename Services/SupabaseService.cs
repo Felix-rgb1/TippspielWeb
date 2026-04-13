@@ -2,6 +2,7 @@ using Npgsql;
 using TippspielWeb.Models;
 using System.Security.Cryptography;
 using System.Text;
+using System.Globalization;
 
 namespace TippspielWeb.Services
 {
@@ -76,11 +77,72 @@ namespace TippspielWeb.Services
             var runtimeValue = runtimeConfiguration.GetConnectionString(name);
             if (!string.IsNullOrWhiteSpace(runtimeValue))
             {
-                return runtimeValue;
+                return NormalizeConnectionString(runtimeValue);
             }
 
             var fallbackValue = fallbackConfiguration.GetConnectionString(name);
-            return string.IsNullOrWhiteSpace(fallbackValue) ? null : fallbackValue;
+            return string.IsNullOrWhiteSpace(fallbackValue) ? null : NormalizeConnectionString(fallbackValue);
+        }
+
+        private static string NormalizeConnectionString(string rawValue)
+        {
+            var value = rawValue.Trim();
+
+            // Render UI values are sometimes pasted with quotes.
+            if (value.Length >= 2 && value.StartsWith('"') && value.EndsWith('"'))
+            {
+                value = value[1..^1].Trim();
+            }
+
+            // Support URL-style connection strings from Supabase/Render.
+            if (value.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) ||
+                value.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+                {
+                    return value;
+                }
+
+                var builder = new NpgsqlConnectionStringBuilder
+                {
+                    Host = uri.Host,
+                    Port = uri.IsDefaultPort ? 5432 : uri.Port,
+                    Database = string.IsNullOrWhiteSpace(uri.AbsolutePath) ? "postgres" : uri.AbsolutePath.TrimStart('/'),
+                    SslMode = SslMode.Require
+                };
+
+                var userInfo = uri.UserInfo.Split(':', 2);
+                if (userInfo.Length > 0)
+                {
+                    builder.Username = Uri.UnescapeDataString(userInfo[0]);
+                }
+
+                if (userInfo.Length > 1)
+                {
+                    builder.Password = Uri.UnescapeDataString(userInfo[1]);
+                }
+
+                var query = uri.Query.TrimStart('?');
+                if (!string.IsNullOrWhiteSpace(query))
+                {
+                    foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var kv = pair.Split('=', 2);
+                        var key = Uri.UnescapeDataString(kv[0]);
+                        var val = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : string.Empty;
+
+                        if (key.Equals("sslmode", StringComparison.OrdinalIgnoreCase) &&
+                            Enum.TryParse<SslMode>(val, true, out var sslMode))
+                        {
+                            builder.SslMode = sslMode;
+                        }
+                    }
+                }
+
+                return builder.ConnectionString;
+            }
+
+            return value;
         }
 
         private async Task ExecuteNonQueryAsync(string sql, params NpgsqlParameter[] parameters)
