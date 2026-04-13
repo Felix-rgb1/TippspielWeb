@@ -11,6 +11,8 @@ namespace TippspielWeb.Services
         private readonly ILogger<SupabaseService> _logger;
         private volatile bool _isAvailable = true;
 
+        public bool IsAvailable => _isAvailable;
+
         public SupabaseService(IConfiguration configuration, ILogger<SupabaseService> logger)
         {
             _logger = logger;
@@ -109,6 +111,7 @@ namespace TippspielWeb.Services
         {
             if (!_isAvailable)
             {
+                _logger.LogWarning("Supabase ist nicht verfuegbar. Abfrage wird uebersprungen: {Sql}", sql);
                 return new List<T>();
             }
 
@@ -302,22 +305,31 @@ namespace TippspielWeb.Services
             if (!_isAvailable)
                 throw new InvalidOperationException("Supabase nicht verfügbar.");
 
-            await using var conn = new NpgsqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var cmd = new NpgsqlCommand(
-                "INSERT INTO Spiele (Spieltag, Heimmannschaft, Gastmannschaft, SpielDatum, HeimTore, GastTore) VALUES (@spieltag, @homeTeam, @awayTeam, @gameDate, @homeGoals, @awayGoals) RETURNING SpielId",
-                conn);
-            cmd.Parameters.AddRange(new NpgsqlParameter[]
+            try
             {
-                new NpgsqlParameter("spieltag", spiel.Spieltag),
-                new NpgsqlParameter("homeTeam", spiel.Heimmannschaft),
-                new NpgsqlParameter("awayTeam", spiel.Gastmannschaft),
-                new NpgsqlParameter("gameDate", spiel.SpielDatum.ToUniversalTime()),
-                new NpgsqlParameter("homeGoals", spiel.HeimTore ?? (object)DBNull.Value),
-                new NpgsqlParameter("awayGoals", spiel.GastTore ?? (object)DBNull.Value),
-            });
-            var result = await cmd.ExecuteScalarAsync();
-            return Convert.ToInt32(result);
+                await using var conn = new NpgsqlConnection(_connectionString);
+                await conn.OpenAsync();
+                await using var cmd = new NpgsqlCommand(
+                    "INSERT INTO Spiele (Spieltag, Heimmannschaft, Gastmannschaft, SpielDatum, HeimTore, GastTore) VALUES (@spieltag, @homeTeam, @awayTeam, @gameDate, @homeGoals, @awayGoals) RETURNING SpielId",
+                    conn);
+                cmd.Parameters.AddRange(new NpgsqlParameter[]
+                {
+                    new NpgsqlParameter("spieltag", spiel.Spieltag),
+                    new NpgsqlParameter("homeTeam", spiel.Heimmannschaft),
+                    new NpgsqlParameter("awayTeam", spiel.Gastmannschaft),
+                    new NpgsqlParameter("gameDate", spiel.SpielDatum.ToUniversalTime()),
+                    new NpgsqlParameter("homeGoals", spiel.HeimTore ?? (object)DBNull.Value),
+                    new NpgsqlParameter("awayGoals", spiel.GastTore ?? (object)DBNull.Value),
+                });
+                var result = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                _isAvailable = false;
+                _logger.LogError(ex, "Error executing insert with RETURNING for Spiel {Home} vs {Away}.", spiel.Heimmannschaft, spiel.Gastmannschaft);
+                throw;
+            }
         }
 
         public async Task UpdateSpiel(Spiel spiel)

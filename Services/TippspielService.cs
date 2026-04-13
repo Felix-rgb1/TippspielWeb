@@ -49,6 +49,12 @@ namespace TippspielWeb.Services
         {
             if (_spieleCache.Count > 0) return;
 
+            if (!_supabaseService.IsAvailable)
+            {
+                _logger.LogWarning("JSON-Migration wird uebersprungen, weil Supabase nicht verfuegbar ist.");
+                return;
+            }
+
             var jsonPath = Path.Combine(AppContext.BaseDirectory, "tippspiel_daten.json");
             if (!File.Exists(jsonPath)) return;
 
@@ -143,6 +149,13 @@ namespace TippspielWeb.Services
         private async Task LadeAlleDatenAusSupabase()
         {
             _logger.LogInformation("Lade alle Daten aus Supabase...");
+
+            if (!_supabaseService.IsAvailable)
+            {
+                _logger.LogWarning("Supabase ist nicht verfuegbar. Vorhandene Caches bleiben leer oder unveraendert.");
+                return;
+            }
+
             try
             {
                 var benutzerList = await _supabaseService.GetBenutzer();
@@ -155,7 +168,7 @@ namespace TippspielWeb.Services
                 _spieleCache = new ConcurrentDictionary<int, Spiel>(spieleList.ToDictionary(s => s.SpielId));
 
                 // Tipps werden spiel- oder benutzerspezifisch geladen, nicht alle auf einmal
-                _logger.LogInformation("Daten aus Supabase geladen.");
+                _logger.LogInformation("Daten aus Supabase geladen. Benutzer: {Benutzer}, Mannschaften: {Mannschaften}, Spiele: {Spiele}", _benutzerCache.Count, _mannschaftenCache.Count, _spieleCache.Count);
             }
             catch (Exception ex)
             {
